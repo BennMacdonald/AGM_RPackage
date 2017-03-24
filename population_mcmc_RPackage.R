@@ -109,8 +109,9 @@ doMCMC <- function(timePoints, data, auxVars, options) {
       if(!options$explicit && i > options$burnin && u > 0.98) {
         pick = resample(auxVars$speciesList, 1)
  
+        
         gp.sampling = sampleGPX(gpFit[[chain]], sigma[chain, pick], x[[chain]], y[,pick],
-                              lambda[chain,], parameters[chain,], time, auxVars, pick,
+                              lambda[chain,], parameters[chain,], timePoints, auxVars, pick,
                               options$proposalGPTuning[[chain]][,pick], chain, chainTemp, options)
 
         gpFit[[chain]] = gp.sampling$gp
@@ -468,6 +469,7 @@ sampleGPX <- function(gpFit, sigma, x, y, lambda, parameters,
   # Check if Cholesky decomposition possible for the new parameters
   upper.new = NULL 
   try(upper.new <- chol(gpCovs$K), silent=T)
+  
   oldLL = calculateLogLikelihood(parameters, gpFit, x, lambda,
            timePoints, auxVars, 
   		     'MCMC', chain, includeDet=T)
