@@ -80,6 +80,7 @@ calculateLogLikelihoodMCMC <- function(params, gpFit, X, lambda, timePoints,
     }
     
     if(!is.null(invNoiseA)) {
+      #browser()
       prodXdot = t.default(gradDiff) %*% invNoiseA %*% gradDiff
       logLikelihood = - 0.5 * (prodXdot)
     } else {

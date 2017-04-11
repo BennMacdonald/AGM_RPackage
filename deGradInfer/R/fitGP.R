@@ -1,4 +1,3 @@
-#library('gptk')
 
 # Fit a GP to the one-dimensional data, using the gptk package
 # time and y need to be of dimensionality Nx1 where N is the number of datapoints

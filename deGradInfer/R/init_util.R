@@ -1,5 +1,4 @@
 # Initialisation and Utility Functions
-source("fitGP_RPackage.R")
 
 # Initialise chains and other things
 setupChains <- function(timePoints, data, auxVars, options) {

@@ -1,7 +1,3 @@
-source("functionsMCMC_RPackage.R")
-source("init_util_RPackage.R")
-
-#library("gdata")
 
 # Main MCMC function: Runs the MCMC for the specified number of iterations and returns the 
 # sampled parameter values 
