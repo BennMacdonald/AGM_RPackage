@@ -328,7 +328,7 @@ likelihoodUtil <- function(params, X, lambda, timePoints, auxVars, gpFit, specie
   odeNoiseParam = lambda
   error = FALSE
   # Gradient from the ODE system
-  f = getODEGradient(params, X, timePoints, auxVars, species)
+  f = getODEGradient(X, timePoints, params, auxVars, species)
   f = as.matrix(f) 
   
   # If GP parameters have changed, recalculate K and derivatives, and A

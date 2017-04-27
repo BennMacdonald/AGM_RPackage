@@ -97,10 +97,6 @@ doMCMC <- function(timePoints, data, auxVars, options) {
       chainTemp = temperatures[chain]
       u = runif(1,0,1)
 
-
-
-
-
       # GP Parameter Inference, coupled with latent variable inference
       if(!options$explicit && i > options$burnin && u > 0.98) {
         pick = resample(auxVars$speciesList, 1)
@@ -293,37 +289,39 @@ doMCMC <- function(timePoints, data, auxVars, options) {
       }
       
 	### Record Log Likelihood and Log Likelihood for all temperature chains
-      lLRec = rbind(lLRec, lLchains[chainNum] + sum(dataLLchains[chainNum,]))
-      lLAllStore <- c()
-	for(i in 1:options$chainNum)
-	{
-		lLAllStore[i] <- lLchains[i] + sum(dataLLchains[i,])
-	}
-	lLAllChains <- rbind(lLAllChains,lLAllStore)
-
-      if(options$showPlot) { 
-        if(length(auxVars$speciesList) <= 6)
-          par(mfrow=c(1+ceiling(length(auxVars$speciesList)/2),2))
-        else par(mfrow=c(1,2))
-           
-        plot(lLRec, main=paste('Iterations:', i)) 
-        boxplot(paramsRec[,options$inferredParams])    
-        
-        if(length(auxVars$speciesList) <= 6) {
-          for(species in auxVars$speciesList) {
-            y.max = max(c(x[[chainNum]][,species], y[,species]))
-            y.min = min(c(x[[chainNum]][,species], y[,species]))
-            plot(timePoints, x[[chainNum]][,species], ylim=c(y.min,y.max))
-            points(timePoints, auxVars$y.true[,species], type='l')
-            points(timePoints, y[,species], pch=2)
-            text(timePoints[1], 0.05, 
-              paste(round(gpFit[[chainNum]][,species], digits=2), collapse=' '), adj=c(0,0))
-          }
-        }
-      
-        Sys.sleep(0.005)
-      } 
-   
+  lLRec = rbind(lLRec, lLchains[chainNum] + sum(dataLLchains[chainNum,]))
+  
+	
+  # Vectorized version of what was previously a loop
+  # Also fixed bug where variable i was used to index both chains and 
+  # iterations
+  lLAllStore = c(lLchains + rowSums(dataLLchains))
+  
+  lLAllChains <- rbind(lLAllChains,lLAllStore)
+  
+  if(options$showPlot) { 
+    if(length(auxVars$speciesList) <= 6)
+      par(mfrow=c(1+ceiling(length(auxVars$speciesList)/2),2))
+    else par(mfrow=c(1,2))
+    
+    plot(lLRec, main=paste('Iterations:', i)) 
+    boxplot(paramsRec[,options$inferredParams])    
+    
+    if(length(auxVars$speciesList) <= 6) {
+      for(species in auxVars$speciesList) {
+        y.max = max(c(x[[chainNum]][,species], y[,species]))
+        y.min = min(c(x[[chainNum]][,species], y[,species]))
+        plot(timePoints, x[[chainNum]][,species], ylim=c(y.min,y.max))
+        points(timePoints, auxVars$y.true[,species], type='l')
+        points(timePoints, y[,species], pch=2)
+        text(timePoints[1], 0.05, 
+             paste(round(gpFit[[chainNum]][,species], digits=2), collapse=' '), adj=c(0,0))
+      }
+    }
+    
+    Sys.sleep(0.005)
+  } 
+  
     }
 
     # Adjust proposal to get better acceptance rates
@@ -738,7 +736,7 @@ sampleParams <- function(oldParams, gpFit, data, y, lambda, sigma, timePoints, t
 }
 
 calculateLogLikelihoodExplicit <- function(params, y, time, sigma, auxVars) {
-  solution = solveODE(time, y, params, auxVars) 
+  solution = solveODE(dim(y)[2], time, auxVars$ode.system, params) 
   
   param.solution = solution$x 
 
@@ -844,45 +842,7 @@ sampleNoise <- function(sigma, x, y, options, chain, species, temperatures,auxVa
 	}
 } 
 
-# Solve ODE system explicitly
-solveODE <- function(timePoints, y, params, auxVars) {
-  initial.conditions = (length(params) - dim(y)[2]+1):length(params)
-  
 
-  if(auxVars$modelName == 'LV') {
-    solution = simulateLV(params[initial.conditions], timePoints, params)
-  } else if(auxVars$modelName == 'VV') {
-    solution = simulateVV(params[initial.conditions], timePoints, params)
-  } else if(auxVars$modelName == 'RobertaSimple') {
-    solution = simulateRobertaSimple(params[initial.conditions], timePoints, params)
-  } else if(auxVars$modelName == "P2011Model") {
-    solution = simulateP2011Model(params[initial.conditions],timePoints,params)
-  } else if(auxVars$modelName == "VGModel1") {
-    solution = simulateVGModel1(params[initial.conditions],timePoints,params)
-  } else if(auxVars$modelName == "VGModel2") {
-    solution = simulateVGModel2(params[initial.conditions],timePoints,params)
-  } else if(auxVars$modelName == "VGModel3") {
-    solution = simulateVGModel3(params[initial.conditions],timePoints,params)
-  } else if(auxVars$modelName == "VGModel4") {
-    solution = simulateVGModel4(params[initial.conditions],timePoints,params)
-  } else if(auxVars$modelName == "LotkaVolterraModel") {
-    solution = simulateLotkaVolterraModel(params[initial.conditions],timePoints,params)
-  } else if(auxVars$modelName == "FitzHughNagumoModel") {
-    solution = simulateFitzHughNagumoModel(params[initial.conditions],timePoints,params)
-  }
-
-
-  error = F 
-  result = matrix(0, length(timePoints), dim(y)[2])
-  result.dims = dim(result)
-  result.dims[2] = result.dims[2] + 1
-
-  if(any(dim(solution) != result.dims)) error = T
-
-  result[1:nrow(solution), 2:ncol(solution)-1] = solution[,2:ncol(solution)]
-
-  return(list(x=result,error=error))
-}
 
 # Propose new parameter set
 proposeParams <- function(X, timePoints, oldParams, lambda, auxVars, 

@@ -1,11 +1,58 @@
 # Main function for adaptive gradient matching
 
-agm <- function(data,time,numberOfParameters,temperMismatchParameter=FALSE,
-                initialisedParameters=NULL,defaultODE=NULL,noiseInfer=TRUE,
+#' Title
+#'
+#' @param data 
+#' @param time 
+#' @param ode.system A function describing the ODE system. See Details for more information.
+#' @param numberOfParameters 
+#' @param temperMismatchParameter 
+#' @param initialisedParameters 
+#' @param noiseInfer 
+#' @param noiseFixed 
+#' @param chainNum 
+#' @param gpCovType 
+#' @param saveFile 
+#' @param defaultTemperingScheme 
+#' @param maxIterations 
+#' @param showPlot 
+#' @param showProgress 
+#' @param mismatchParameterValues 
+#' @param originalSignalOnlyPositive 
+#' @param defaultPrior 
+#' @param explicit Explicitly solve the ODE system, rather than doing gradient matching. This means that the Gaussian process model is ignored, and the ODE system is directly fitted to the observed data. Default \code{explicit=FALSE}.
+#'
+#' @details 
+#' The parameters \code{ode.system} should be a function of the form \code{f(t, X, params)} where t is the time points for which the derivatives should be calculated, X is T by p matrix containing the values of the variables in the system at time \code{t}, and params is a vector with the current estimated parameter values. The function should return a matrix with the derivatives of x with respect to time (in the same order as in x). Note that in order to be consistent with the \code{ode} in package \code{deSolve}, we require that the function also works for input at a single time point. 
+#' @return
+#' @export
+#'
+#' @examples
+#' 
+#' load("LV SD Noise 0.31 Average SNR 10 1.RData")
+#' dataTest <- dataset$data
+#' timeTest <- dataset$time
+#' noiseTest <- dataset$noise
+#' 
+#' LV_func = function(t, X, params) {
+#' 	dxdt = cbind(
+#' 	  X[,1]*(params[1] - params[2]*X[,2]),
+#'  	- X[,2]*(params[3] - params[4]*X[,1])
+#' 	)
+#' 	return(dxdt)
+#' }
+#' 
+#' agm(data=dataTest,time=timeTest,ode.system=LV_func,numberOfParameters=4,
+#'     temperMismatchParameter=TRUE,
+#'     maxIterations=1000,originalSignalOnlyPositive=TRUE,
+#'     defaultPrior="Gamma",defaultTemperingScheme="LB10")
+#' 
+agm <- function(data,time,ode.system,numberOfParameters,temperMismatchParameter=FALSE,
+                initialisedParameters=NULL,noiseInfer=TRUE,
                 noiseFixed=NULL,chainNum=20,gpCovType="rbf",saveFile=NULL,
                 defaultTemperingScheme=NULL,maxIterations=300000,showPlot=TRUE,
                 showProgress=FALSE,mismatchParameterValues=NULL,
-                originalSignalOnlyPositive=FALSE,defaultPrior=NULL)
+                originalSignalOnlyPositive=FALSE,defaultPrior=NULL, explicit=FALSE)
 { # Start function agm
   
   ### Make sure that lambda values will only come from one place (either the
@@ -14,29 +61,6 @@ agm <- function(data,time,numberOfParameters,temperMismatchParameter=FALSE,
   if (!is.null(mismatchParameterValues)){
     defualtTemperingScheme <- NULL
   }
-  
-  
-  if(defaultODE=="LotkaVolterra"){
-    modelName <- "LotkaVolterraModel"
-  }
-  if(defaultODE=="FitzHughNagumo"){
-    modelName <- "FitzHughNagumoModel"
-  }
-  
-  if(defaultODE=="VG1Full"){
-    modelName <- "VGModel1Full"
-  }
-  if(defaultODE=="VG2Full"){
-    modelName <- "VGModel2Full"
-  }
-  if(defaultODE=="VG3Full"){
-    modelName <- "VGModel3Full"
-  }
-  if(defaultODE=="VG4Full"){
-    modelName <- "VGModel4Full"
-  }
-  
-  
   
   temperatureExponentChains <- 5 # Friel and Pettit
   
@@ -158,10 +182,7 @@ agm <- function(data,time,numberOfParameters,temperMismatchParameter=FALSE,
                   covtype=gpCovType,observedSpeciesList=1:ncol(dataset),
                   constant=dataConstants,sigmaInfer=noiseInfer)
   
-  
-  if (!is.null(defaultODE)){
-    auxVars$modelName <- modelName
-  }
+  auxVars$ode.system = ode.system
   
   if (!is.null(noiseFixed)){
     auxVars$sigmaTrue <- noiseFixed
@@ -183,7 +204,7 @@ agm <- function(data,time,numberOfParameters,temperMismatchParameter=FALSE,
                   noiseBurnin=1,showPlot=showPlot,
                   saveFile=saveFile,lambda.max=0.1,
                   showProgress=showProgress,keepInit=F,
-                  explicit=F,allowNeg=T,
+                  explicit=explicit,allowNeg=T,
                   gpInit=T,temps=temperatureExponentChains
   )
   

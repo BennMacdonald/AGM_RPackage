@@ -2,24 +2,31 @@ library('devtools')
 
 
 ### Load test dataset
-# Frank: It's good practice to give your R data files the *.RData extension, 
-# so I changed the extension
-
 load("LV SD Noise 0.31 Average SNR 10 1.RData")
-
 
 dataTest <- dataset$data
 timeTest <- dataset$time
 noiseTest <- dataset$noise
 
-rm(dataset)
-
-
 # Simulates installation and loading of package
 load_all('deGradInfer/')
 
-agm(data=dataTest,time=timeTest,numberOfParameters=4,temperMismatchParameter=TRUE,
-    defaultODE="LotkaVolterra",maxIterations=1000,originalSignalOnlyPositive=TRUE,
+LV_func = function(t, X, params) {
+	dxdt = cbind(
+	  X[,1]*(params[1] - params[2]*X[,2]),
+ 	- X[,2]*(params[3] - params[4]*X[,1])
+	)
+	return(dxdt)
+}
+
+# AGM
+agm(data=dataTest,time=timeTest,ode.system=LV_func,numberOfParameters=4,temperMismatchParameter=TRUE,
+    maxIterations=1000,originalSignalOnlyPositive=TRUE,
     defaultPrior="Gamma",defaultTemperingScheme="LB10")
+
+# Explicit ODE solution
+agm(data=dataTest,time=timeTest,ode.system=LV_func,numberOfParameters=6,temperMismatchParameter=TRUE,
+    maxIterations=1000,originalSignalOnlyPositive=TRUE, initialisedParameters=c(1,1,1,1,5,3),
+    defaultPrior="Gamma",defaultTemperingScheme="LB10",explicit=TRUE)
 
 
