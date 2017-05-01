@@ -170,11 +170,12 @@ doMCMC <- function(timePoints, data, auxVars, options) {
                                   auxVars, options, chain)
 
         parameters[chain,] = sampling$parameters
-        #if(chain == chainNum && (lLchains[chain] - sampling$lL) > 20) browser()
+        
         lLchains[chain] = sampling$lL
         auxVars = sampling$auxVars
           
-          if(chain == chainNum) lastMove = 'params'
+        if(chain == chainNum) lastMove = 'params'
+        
         tuning$acceptTemp[chain,] = tuning$acceptTemp[chain,] + sampling$accepted
         tuning$proposeTemp[chain,] = tuning$proposeTemp[chain,] + sampling$proposed
         paramsTempRec[[chain]] = rbind(paramsTempRec[[chain]], 
@@ -309,10 +310,9 @@ doMCMC <- function(timePoints, data, auxVars, options) {
     
     if(length(auxVars$speciesList) <= 6) {
       for(species in auxVars$speciesList) {
-        y.max = max(c(x[[chainNum]][,species], y[,species]))
-        y.min = min(c(x[[chainNum]][,species], y[,species]))
-        plot(timePoints, x[[chainNum]][,species], ylim=c(y.min,y.max))
-        points(timePoints, auxVars$y.true[,species], type='l')
+        y.max = max(c(x[[chainNum]][,species]-auxVars$constant[,species], y[,species]))
+        y.min = min(c(x[[chainNum]][,species]-auxVars$constant[,species], y[,species]))
+        plot(timePoints, x[[chainNum]][,species]-auxVars$constant[,species], ylim=c(y.min,y.max))
         points(timePoints, y[,species], pch=2)
         text(timePoints[1], 0.05, 
              paste(round(gpFit[[chainNum]][,species], digits=2), collapse=' '), adj=c(0,0))
@@ -722,6 +722,7 @@ sampleParams <- function(oldParams, gpFit, data, y, lambda, sigma, timePoints, t
     
     ratio = (newPrior - oldPrior) + temperature * (newLL$LL - oldLL$LL) + 
             (proposal$oldProb - proposal$newProb)
+    
 
     if(!error && !is.nan(ratio) && min(ratio, 0) > log(runif(1))) {  
       params = proposal$params
@@ -743,7 +744,7 @@ calculateLogLikelihoodExplicit <- function(params, y, time, sigma, auxVars) {
   explicit.ll = 0
  
   for(species in auxVars$observedSpeciesList) {
-    explicit.ll = explicit.ll + sum(dnorm(param.solution[,species], y[,species], 
+    explicit.ll = explicit.ll + sum(dnorm(param.solution[,species]-auxVars$constant[,species], y[,species], 
                                       sigma[species], log=T))     
   }  
         

@@ -84,13 +84,12 @@ setupChains <- function(timePoints, data, auxVars, options) {
   if(!options$keepInit) {
     parameters[,options$inferredParams] = 
       rgamma(chainNum*length(options$inferredParams), 0.5, 1)
-  }  
     
-  if(options$explicit) {
-    parameters[,(length(options$paramsInit) - dim(data)[2] + 1):length(options$paramsInit)] = 
-      t(matrix(data[1,], speciesNum, chainNum))
-  }
-
+    if(options$explicit) {
+      parameters[,(length(options$paramsInit) - dim(data)[2] + 1):length(options$paramsInit)] = 
+        t(matrix(data[1,], speciesNum, chainNum))
+    }
+  }  
 
 	if (auxVars$Mismatch$Tempering) { # For users who want to specify their own values
 		if (!is.null(auxVars$Mismatch$lambdaValues)){

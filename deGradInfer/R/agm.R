@@ -203,7 +203,7 @@ agm <- function(data,time,ode.system,numberOfParameters,temperMismatchParameter=
                   chainNum=chainNum,paramsInit=paramsInit,
                   noiseBurnin=1,showPlot=showPlot,
                   saveFile=saveFile,lambda.max=0.1,
-                  showProgress=showProgress,keepInit=F,
+                  showProgress=showProgress,keepInit=TRUE,
                   explicit=explicit,allowNeg=T,
                   gpInit=T,temps=temperatureExponentChains
   )

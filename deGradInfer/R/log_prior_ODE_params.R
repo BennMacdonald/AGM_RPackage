@@ -1,7 +1,8 @@
 # Calculate Log Prior for ODE Parameters
 
 calculateLogParamPrior <- function(params,auxVars) {
-	if(auxVars$defaultLogParamPrior=="Uniform") {
+  
+  if(auxVars$defaultLogParamPrior=="Uniform") {
 		# Uniform prior
 		return(0)
 	}
