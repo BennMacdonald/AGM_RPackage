@@ -310,9 +310,16 @@ doMCMC <- function(timePoints, data, auxVars, options) {
     
     if(length(auxVars$speciesList) <= 6) {
       for(species in auxVars$speciesList) {
-        y.max = max(c(x[[chainNum]][,species]-auxVars$constant[,species], y[,species]))
-        y.min = min(c(x[[chainNum]][,species]-auxVars$constant[,species], y[,species]))
-        plot(timePoints, x[[chainNum]][,species]-auxVars$constant[,species], ylim=c(y.min,y.max))
+        # Ensure plotting is correct for explicit solution
+        if(options$explicit) {
+          offset = auxVars$constant[,species]
+        } else {
+          offset = 0
+        }
+        
+        y.max = max(c(x[[chainNum]][,species]-offset, y[,species]))
+        y.min = min(c(x[[chainNum]][,species]-offset, y[,species]))
+        plot(timePoints, x[[chainNum]][,species]-offset, ylim=c(y.min,y.max))
         points(timePoints, y[,species], pch=2)
         text(timePoints[1], 0.05, 
              paste(round(gpFit[[chainNum]][,species], digits=2), collapse=' '), adj=c(0,0))
