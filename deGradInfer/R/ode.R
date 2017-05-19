@@ -55,7 +55,7 @@ getODEGradient <- function(X, timePoints, params, auxVars, species=1:dim(X)[2]) 
   # Calculate gradients
   # Currently calculates all gradients, then retains only the ones for one species;
   # this will be inefficient for very large ODE systems
-  gradient = auxVars$ode.system(timePoints, X, params)[,species,drop=FALSE]
+  gradient = auxVars$ode.system(timePoints, XODE, params)[,species,drop=FALSE]
   
   return(gradient)
 }
