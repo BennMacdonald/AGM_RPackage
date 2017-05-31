@@ -58,7 +58,7 @@ setupChains <- function(timePoints, data, auxVars, options) {
         }
       } else {
         gpFit[[i]][1:2,species] = 1
-        x[[i]][,species] = data[,species]
+        x[[i]][,species] = 0
         sigma[i, species] = 0.0001
       }
     }

@@ -47,7 +47,8 @@
 #'     maxIterations=1000,originalSignalOnlyPositive=TRUE,
 #'     defaultPrior="Gamma",defaultTemperingScheme="LB10")
 #' 
-agm <- function(data,time,ode.system,numberOfParameters,temperMismatchParameter=FALSE,
+agm <- function(data,time,ode.system,numberOfParameters, observedSpecies=1:ncol(data),
+                temperMismatchParameter=FALSE,
                 initialisedParameters=NULL,noiseInfer=TRUE,
                 noiseFixed=NULL,chainNum=20,gpCovType="rbf",saveFile=NULL,
                 defaultTemperingScheme=NULL,maxIterations=300000,showPlot=TRUE,
@@ -59,7 +60,7 @@ agm <- function(data,time,ode.system,numberOfParameters,temperMismatchParameter=
   ### default LB2 and LB10 schemes or through the user's specifications
   
   if (!is.null(mismatchParameterValues)){
-    defualtTemperingScheme <- NULL
+    defaultTemperingScheme <- NULL
   }
   
   temperatureExponentChains <- 5 # Friel and Pettit
@@ -179,7 +180,7 @@ agm <- function(data,time,ode.system,numberOfParameters,temperMismatchParameter=
   auxVars <- list(speciesList=1:ncol(dataset),originalPositive=originalSignalOnlyPositive,
                   Mismatch=list(Tempering=temperMismatchParameter,
                                 lambdaValues=mismatchParameterValues),
-                  covtype=gpCovType,observedSpeciesList=1:ncol(dataset),
+                  covtype=gpCovType,observedSpeciesList=observedSpecies,
                   constant=dataConstants,sigmaInfer=noiseInfer)
   
   auxVars$ode.system = ode.system

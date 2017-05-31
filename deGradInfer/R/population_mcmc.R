@@ -101,7 +101,6 @@ doMCMC <- function(timePoints, data, auxVars, options) {
       if(!options$explicit && i > options$burnin && u > 0.98) {
         pick = resample(auxVars$speciesList, 1)
  
-        
         gp.sampling = sampleGPX(gpFit[[chain]], sigma[chain, pick], x[[chain]], y[,pick],
                               lambda[chain,], parameters[chain,], timePoints, auxVars, pick,
                               options$proposalGPTuning[[chain]][,pick], chain, chainTemp, options)
@@ -426,8 +425,14 @@ sampleX <- function(parameters, chain, temperatures, gpFit, x, y, lambda, sigma,
 
   auxVars = newLL$auxVars  
   
-  oldPrior = sum(dnorm(y, x[,species], sigma, log=T))
-  newPrior = sum(dnorm(y, proposal.X[,species], sigma, log=T))
+  
+  if(species %in% auxVars$observedSpeciesList) {
+    oldPrior = sum(dnorm(y, x[,species], sigma, log=T))
+    newPrior = sum(dnorm(y, proposal.X[,species], sigma, log=T))
+  } else {
+    oldPrior = 0
+    newPrior = 0
+  }
 
   ratio = exp((newPrior - oldPrior) + temperatures[chain] * 
       ((newLL$gpXPrior - oldLL$gpXPrior) + 
@@ -447,7 +452,7 @@ sampleX <- function(parameters, chain, temperatures, gpFit, x, y, lambda, sigma,
     lL = oldLL$LL + oldLL$gpXPrior - 0.5 * oldLL$log.det
     data.LL = oldPrior
   }
-
+  
   return(list(x=sampled.X, accept=accept, lL=lL, auxVars=auxVars, data.LL=data.LL))
 }
 
@@ -511,6 +516,7 @@ sampleGPX <- function(gpFit, sigma, x, y, lambda, parameters,
   
   if(!is.nan(ratio) &&  min(1, ratio) > runif(1) && 
     (options$allowNeg || all(x.new[,species] > 0))) {
+    
     sampled.gp = proposal$gp; accept = proposal$changed 
     lL = newLL$LL - 0.5 * newLL$log.det + newLL$gpXPrior
     data.LL = x.ll.new
@@ -527,6 +533,7 @@ sampleGPX <- function(gpFit, sigma, x, y, lambda, parameters,
     auxVars = oldLL$auxVars; x = x
     data.LL = x.ll
   }
+  
 
   return(list(gp=sampled.gp, accept=accept, changed=proposal$changed, lL=lL, auxVars=auxVars, 
               x=x, data.LL=data.LL))
@@ -707,7 +714,6 @@ sampleParams <- function(oldParams, gpFit, data, y, lambda, sigma, timePoints, t
 
   x = oldLL$x 
   
-  
   gpXPrior = oldLL$gpXPrior; auxVars = oldLL$auxVars
 
   lL = (gpXPrior + oldLL$LL - 0.5 * oldLL$log.det)
@@ -732,6 +738,7 @@ sampleParams <- function(oldParams, gpFit, data, y, lambda, sigma, timePoints, t
     
 
     if(!error && !is.nan(ratio) && min(ratio, 0) > log(runif(1))) {  
+      #if(chain==20) browser()
       params = proposal$params
       accept = proposal$changed
       lL = (gpXPrior + newLL$LL - 0.5 * oldLL$log.det)
