@@ -2,28 +2,29 @@
 
 #' Title
 #'
-#' @param data 
-#' @param time 
+#' @param data A matrix of observations of the ODE system over time. The number of rows is equal to the number time points and the number of columns is equal to the number of variables in the system.
+#' @param time A vector containing the time points at which the observations were made.
 #' @param ode.system A function describing the ODE system. See Details for more information.
-#' @param numberOfParameters 
-#' @param temperMismatchParameter 
-#' @param initialisedParameters 
-#' @param noiseInfer 
-#' @param noiseFixed 
-#' @param chainNum 
-#' @param gpCovType 
-#' @param saveFile 
-#' @param defaultTemperingScheme 
-#' @param maxIterations 
-#' @param showPlot 
-#' @param showProgress 
-#' @param mismatchParameterValues 
-#' @param originalSignalOnlyPositive 
-#' @param defaultPrior 
-#' @param explicit Explicitly solve the ODE system, rather than doing gradient matching. This means that the Gaussian process model is ignored, and the ODE system is directly fitted to the observed data. Default \code{explicit=FALSE}.
+#' @param numberOfParameters A scalar specifying the number of parameters in the ODE system. If explicitly solving the ODE system, the number of parameters will (usually) be equal to the number of ODE parameters plus the number of initial conditions of the system.
+#' @param noiseFixed A scalar specifiying the value at which to fix the standard deviation of the observational noise.
+#' @param observedVariables A vector specifying which variables are observed in the system. Default is \code{observedVariables=1:ncol(data)} (fully observed system).
+#' @param temperMismatchParameter Logical: whether tempering of the gradient mismatch parameter be carried out? Default is \code{temperMismatchParameter=FALSE}.
+#' @param initialisedParameters A vector containing ODE parameters at which to intialise the MCMC. Can be set as \code{NULL} to initialise with a random draw from the prior distribution. Default is \code{initialisedParameters=NULL}.
+#' @param chainNum A scalar specifying the number of parallel temperature chains. Default is \code{chainNum=20}.
+#' @param gpCovType A string specifying the choice of kernel for the Gaussian process. Currently, there are two: \code{gpCovType="rbf"} and \code{gpCovType="sigmoidVar"}.
+#' @param saveFile A string specifying the path and name of the file containing the result output. Can be set as \code{NULL} to save as "AGM Results.R" to the current working directory. Default is \code{saveFile=NULL}.
+#' @param defaultTemperingScheme A string indicating which of the two default gradient mismatch parameter value ladders to use. Choices are \code{defaultTemperingScheme="LB2"} or \code{defaultTemperingScheme="LB10"}. Should only be used when \code{temperMismatchParameter=TRUE}. Default is \code{defaultTemperingScheme=NULL}.
+#' @param maxIterations A scalar specifying the number of total MCMC iterations. Default is \code{maxIterations=300000}.
+#' @param showPlot Logical: whether plots of the MCMC progress should be displayed. Default is \code{showPlot=TRUE}.
+#' @param showProgress Logical: whether \% completion and various parameter values should be printed to the workspace. Default is \code{showProgress=FALSE}.
+#' @param mismatchParameterValues A matrix containing user specified values for the gradient mismatch parameter. The number of rows should be equal to \code{chainNum} and the number of columns should be equal to the number of variables in the system. A typical ladder should have the largest value in the first row and the smallest value in the last row. Should only be used when \code{defaultTemperingScheme=NULL}. Default is \code{mismatchParameterValues=NULL}.
+#' @param originalSignalOnlyPositive Logical: whether all signals observed should be non-negative. When \code{originalSignalOnlyPositive=TRUE}, any negative values of the sampled interpolant will be set to zero. Default is \code{originalSignalOnlyPositive=FALSE}.
+#' @param defaultPrior A string specifying whether one of the default log priors for the ODE parameters should be used. Current choices are "Uniform", "Gamma" (shape=4, rate=2) and "Mixed" (3 ODE parameters; N(mean=0, sd=0.4), N(mean=0, sd=0.4) and Chisquared(df=2)). 
+#' @param explicit Logical: whether the ODE system should be explicitly solved, rather than doing gradient matching. This means that the Gaussian process model is ignored, and the ODE system is directly fitted to the observed data. Default is \code{explicit=FALSE}. Default is \code{defaultPrior=NULL}.
+#' @param explicitNoiseInfer Logical: whether the standard deviation of the observational noise should be inferred when using the method that explicitly solves the ODEs. Only considered when \code{explicit=TRUE}. Default is \code{explicitNoiseInfer=TRUE}.
 #'
 #' @details 
-#' The parameters \code{ode.system} should be a function of the form \code{f(t, X, params)} where t is the time points for which the derivatives should be calculated, X is T by p matrix containing the values of the variables in the system at time \code{t}, and params is a vector with the current estimated parameter values. The function should return a matrix with the derivatives of x with respect to time (in the same order as in x). Note that in order to be consistent with the \code{ode} in package \code{deSolve}, we require that the function also works for input at a single time point. 
+#' The parameters \code{ode.system} should be a function of the form \code{f(t, X, params)} where t is the time point vector for which the derivatives should be calculated, X is a T by p matrix containing the values of the variables in the system at time \code{t}, and params is a vector with the current estimated parameter values. The function should return a matrix with the derivatives of x with respect to time (in the same order as in x). Note that in order to be consistent with the \code{ode} in package \code{deSolve}, we require that the function also works for input at a single time point. 
 #' @return
 #' @export
 #'
@@ -33,7 +34,7 @@
 #' dataTest <- dataset$data
 #' timeTest <- dataset$time
 #' noiseTest <- dataset$noise
-#' 
+#' ```
 #' LV_func = function(t, X, params) {
 #' 	dxdt = cbind(
 #' 	  X[,1]*(params[1] - params[2]*X[,2]),
@@ -42,20 +43,35 @@
 #' 	return(dxdt)
 #' }
 #' 
-#' agm(data=dataTest,time=timeTest,ode.system=LV_func,numberOfParameters=4,
-#'     temperMismatchParameter=TRUE,
+#' agm(data=dataTest,time=timeTest,noiseFixed=0.31,ode.system=LV_func,
+#'     numberOfParameters=4,temperMismatchParameter=TRUE,
 #'     maxIterations=1000,originalSignalOnlyPositive=TRUE,
 #'     defaultPrior="Gamma",defaultTemperingScheme="LB10")
-#' 
-agm <- function(data,time,ode.system,numberOfParameters, observedSpecies=1:ncol(data),
+#' ```
+agm <- function(data,time,ode.system,numberOfParameters,noiseFixed, observedVariables=1:ncol(data),
                 temperMismatchParameter=FALSE,
-                initialisedParameters=NULL,noiseInfer=TRUE,
-                noiseFixed=NULL,chainNum=20,gpCovType="rbf",saveFile=NULL,
+                initialisedParameters=NULL,
+                chainNum=20,gpCovType="rbf",saveFile=NULL,
                 defaultTemperingScheme=NULL,maxIterations=300000,showPlot=TRUE,
                 showProgress=FALSE,mismatchParameterValues=NULL,
-                originalSignalOnlyPositive=FALSE,defaultPrior=NULL, explicit=FALSE)
+                originalSignalOnlyPositive=FALSE,defaultPrior=NULL, explicit=FALSE,
+		    explicitNoiseInfer=TRUE)
 { # Start function agm
   
+  ### For the time being, users will not be able to use the option to infer the
+  ### standard deviation/variance of the observational noise. This intention is to
+  ### avoid issues of flattening (interpolant). Since this is not an issue for the
+  ### explicit solution, we want users to be able to have the option to infer the noise
+  ### or hold it fixed when using the explicit solution (new arguement explicitNoiseInfer
+  ### added)
+
+  noiseInfer <- FALSE
+
+  if(explicit==TRUE && explicitNoiseInfer==TRUE)
+  {
+    noiseInfer <- TRUE
+  }
+
   ### Make sure that lambda values will only come from one place (either the
   ### default LB2 and LB10 schemes or through the user's specifications
   
@@ -180,7 +196,7 @@ agm <- function(data,time,ode.system,numberOfParameters, observedSpecies=1:ncol(
   auxVars <- list(speciesList=1:ncol(dataset),originalPositive=originalSignalOnlyPositive,
                   Mismatch=list(Tempering=temperMismatchParameter,
                                 lambdaValues=mismatchParameterValues),
-                  covtype=gpCovType,observedSpeciesList=observedSpecies,
+                  covtype=gpCovType,observedSpeciesList=observedVariables,
                   constant=dataConstants,sigmaInfer=noiseInfer)
   
   auxVars$ode.system = ode.system
