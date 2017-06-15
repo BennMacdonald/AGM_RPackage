@@ -9,7 +9,7 @@ timeTest <- dataset$time
 noiseTest <- dataset$noise
 
 # Simulates installation and loading of package
-load_all('deGradInfer/')
+load_all('deGradInfer')
 
 # Lotka volterra function as input
 LV_func = function(t, X, params) {
@@ -20,14 +20,18 @@ LV_func = function(t, X, params) {
 	return(dxdt)
 }
 
+#timeTest = seq(0,2,0.1)
+#dataTest = ode(c(5,3), timeTest, function(t,y,params) list(LV_func(t,matrix(y,1,length(y)),params)), c(2,1,4,1))
+#dataTest = dataTest[,2:3] + rnorm(dim(dataTest)[1]*2,0,0.1)
+
 
 # AGM
 agm(data=dataTest,time=timeTest,ode.system=LV_func,numberOfParameters=4,temperMismatchParameter=TRUE,
-   maxIterations=1000,originalSignalOnlyPositive=TRUE,
+   maxIterations=100000,originalSignalOnlyPositive=TRUE, showProgress=TRUE, noiseFixed=0.1,
    defaultPrior="Gamma",defaultTemperingScheme="LB10")
 
 # Explicit ODE solution
-agm(data=dataTest,time=timeTest,ode.system=LV_func,numberOfParameters=6,temperMismatchParameter=TRUE,
+agm(data=dataTest,time=timeTest,ode.system=LV_func,observedSpecies=1,numberOfParameters=6,temperMismatchParameter=TRUE,
     maxIterations=100000,originalSignalOnlyPositive=TRUE, 
     showProgress=TRUE, noiseInfer=TRUE,
     defaultPrior="Gamma",defaultTemperingScheme="LB10",explicit=TRUE)

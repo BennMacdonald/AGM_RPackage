@@ -89,52 +89,6 @@ fitModel <- function(model, display, covtype) {
     return(models[[best]]) 
 }
 
-# Fit a GP to the one-dimensional data, using the gptk package
-# time and y need to be of dimensionality Nx1 where N is the number of datapoints
-#
-# returns parameters variance and inverse width for rbfkernel = var*exp(-(x1-x2)^2*0.5*invwidth)
-fitGP_experimental <- function(time, y, save.plots=F, filename='', 
-                               species.names=NULL, covtype='sigmoidVar', plot.title='') {
-  options = gpOptions()
-  options$kern$comp = list(covtype, "white")
-  #options$kern = 'sigmoid'
-  options$optimiser = "SCG"
-  gpFit = list()
-
-  if(is.null(species.names)) {
-    species.names = paste('Species', 1:dim(y)[2])
-  } 
-
-  for(species in 1:dim(y)[2]) { 
-    model = gpCreate(1, 1, time, y[,species,drop=F], options)
-
-    model = fitModel(model, display=0, covtype)
-    
-    # DEBUG
-    timeC = seq(time[1], time[length(time)], 0.1)
-    time.temp = matrix(timeC, length(timeC), 1)
-    res = gpPosteriorMeanVar(model, time.temp, varsigma.return = TRUE)
-    
-    if(save.plots) {
-      postscript(file=
-        paste(filename, '_species_', species, '.eps', sep=''), pointsize=25)
-    }
-
-    gpPlot(model, time.temp, res$mu, res$varsigma, ylab=species.names[species],
-           xlab='Time')
-    title(plot.title)
-    
-    
-    if(save.plots) {
-      dev.off()
-    } else {
-      browser()
-    }
-  }
-  
-  return(gpFit)
-}
-
 sigmoidKernParamInit <- function(kern) {
   kern$a <- 0.1 
   kern$b <- 0.1 

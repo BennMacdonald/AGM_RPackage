@@ -1,6 +1,15 @@
-
-# Main MCMC function: Runs the MCMC for the specified number of iterations and returns the 
-# sampled parameter values 
+#' Main MCMC function
+#' Runs the MCMC for the specified number of iterations and returns the 
+#' sampled parameter values
+#'
+#' @param timePoints Measured time points for the ODE system.
+#' @param data Observed data.
+#' @param auxVars Auxiliary variables.
+#' @param options Options for MCMC run.
+#'
+#' @return List with samples parameters and information about the sampling run.
+#'
+#' @importFrom gdata resample
 doMCMC <- function(timePoints, data, auxVars, options) {
 
   # Initialisations
@@ -395,23 +404,11 @@ sampleX <- function(parameters, chain, temperatures, gpFit, x, y, lambda, sigma,
   if(samplingStrategy == 'mixed') {
     samplingStrategy = ifelse(runif(1) < 0.3, 'MCMC', 'HMC')
   }
-   
-  # Hamiltonian Monte Carlo 
-  if(samplingStrategy == 'HMC') {
-    proposal = proposeXHMC(x, y, timePoints, parameters, 
-                 lambda[species], sigma, auxVars, gpFit[[species]], 
-                 options$proposalXTuning, chain, species, temperatures[chain])
-    proposal$invM = 1 
-  # Hamiltonian Monte Carlo with mass matrix
-  } else if(samplingStrategy == 'HMCM') {
-    proposal = proposeXHMCM(x, y, timePoints, parameters, lambda[species], sigma, auxVars, gpFit[[species]], 
-                           options$proposalXTuning, chain, species, temperatures[chain])
+  
   # Markov Chain Monte Carlo
-  } else {
-    proposal = proposeX(x, species, options$proposalXTuning, chain)
-    proposal$invM = 1
-    proposal$p = 0
-  }
+  proposal = proposeX(x, species, options$proposalXTuning, chain)
+  proposal$invM = 1
+  proposal$p = 0
   
   proposal.X = proposal$x
   
@@ -863,16 +860,9 @@ sampleNoise <- function(sigma, x, y, options, chain, species, temperatures,auxVa
 proposeParams <- function(X, timePoints, oldParams, lambda, auxVars, 
                           gpFit, samplingStrategy,
                           options, chain, temperature) {
-  if(samplingStrategy == 'MCMC' || samplingStrategy == 'HMCM') {
-    res = proposeParamsMCMC(oldParams, options$inferredParams, options$proposalTuning[chain,],
-                            auxVars$paramsCovEstimate[[chain]], options$explicit)
-  } else if(samplingStrategy == 'HMC') { 
-    res = proposeParamsHMC(X, timePoints, oldParams, lambda, auxVars, gpFit, 
-                           options$inferredParams, options$proposalTuning[chain,],
-                           temperature)
-
-  }
-
+  
+  res = proposeParamsMCMC(oldParams, options$inferredParams, options$proposalTuning[chain,])
+  
   return(res)
 }
 

@@ -1,29 +1,31 @@
-# Sample from proposal distribution for MCMC (currently uniform)
-proposeParamsMCMC <- function(oldParams, inferredParams, width,
-                              covEstimate, explicit=F) {
+#' Sample from proposal distribution for MCMC
+#'
+#' @param oldParams Previous parameter values
+#' @param inferredParams Proposed parameter values
+#' @param width Width of random walk proposal
+#'
+#' @return List with proposed parameters, indicator variable of which
+#' parameters have changed, old and new proposal probabilities (if 
+#'
+#' @importFrom gdata resample
+proposeParamsMCMC <- function(oldParams, inferredParams, width) {
   
   changed = matrix(0, length(oldParams), 1)
   newParams = oldParams
 
-  if(F && explicit) {
-    newParams[inferredParams] = newParams[inferredParams] + 
-      width[inferredParams]*mvrnorm(1, rep(0, length(inferredParams)),
-                            covEstimate)
-    changed[inferredParams] = 1
-  } else {
-    for(i in 1:length(inferredParams)) {
-      choice = resample(inferredParams, 1) 
+  for(i in 1:length(inferredParams)) {
+    choice = resample(inferredParams, 1) 
      
-      changed[choice] = 1  
-      param = choice 
+    changed[choice] = 1  
+    param = choice 
 
-      # Gaussian random walk proposal (like in Calderhead)
-      newParams[param] = newParams[param] + width[param]*rnorm(1)
+    # Gaussian random walk proposal (like in Calderhead)
+    newParams[param] = newParams[param] + width[param]*rnorm(1)
     
-      # Log Gaussian random walk proposal
-      # newParams[param] = exp(log(newParams[param]) + width[param]*rnorm(1))
-    }
+    # Log Gaussian random walk proposal
+    # newParams[param] = exp(log(newParams[param]) + width[param]*rnorm(1))
   }
+  
 
   return(list(params = newParams, changed=changed, oldProb=1, newProb=1))
 }

@@ -1,3 +1,20 @@
+# Initialise global variables (we really need to remove the use
+# of global variables though)
+invNoiseA.temp <<- NULL
+invNoiseA.rec <<- NULL
+A.rec <<- NULL
+deriv.m.rec <<- NULL
+deriv.m.temp <<- NULL
+invK.rec <<- NULL
+K.rec <<- NULL
+invNoiseA.rec <<- NULL
+A.temp <<- NULL
+invK.temp <<- NULL
+K.temp <<- NULL
+invA.rec <<- NULL
+Species <<- NULL
+
+
 # Main function for adaptive gradient matching
 
 #' Title
@@ -25,16 +42,18 @@
 #'
 #' @details 
 #' The parameters \code{ode.system} should be a function of the form \code{f(t, X, params)} where t is the time point vector for which the derivatives should be calculated, X is a T by p matrix containing the values of the variables in the system at time \code{t}, and params is a vector with the current estimated parameter values. The function should return a matrix with the derivatives of x with respect to time (in the same order as in x). Note that in order to be consistent with the \code{ode} in package \code{deSolve}, we require that the function also works for input at a single time point. 
-#' @return
+#' @return Function returns NULL, but results are saved to file.
 #' @export
+#' @importFrom deSolve ode
+#' @import gptk stats graphics
 #'
 #' @examples
 #' 
-#' load("LV SD Noise 0.31 Average SNR 10 1.RData")
-#' dataTest <- dataset$data
-#' timeTest <- dataset$time
-#' noiseTest <- dataset$noise
-#' ```
+#' #load("LV SD Noise 0.31 Average SNR 10 1.RData")
+#' dataTest <- LV_example_dataset$data
+#' timeTest <- LV_example_dataset$time
+#' noiseTest <- LV_example_dataset$noise
+#' 
 #' LV_func = function(t, X, params) {
 #' 	dxdt = cbind(
 #' 	  X[,1]*(params[1] - params[2]*X[,2]),
@@ -45,9 +64,9 @@
 #' 
 #' agm(data=dataTest,time=timeTest,noiseFixed=0.31,ode.system=LV_func,
 #'     numberOfParameters=4,temperMismatchParameter=TRUE,
-#'     maxIterations=1000,originalSignalOnlyPositive=TRUE,
+#'     chainNum=5, maxIterations=200,originalSignalOnlyPositive=TRUE,
 #'     defaultPrior="Gamma",defaultTemperingScheme="LB10")
-#' ```
+#' 
 agm <- function(data,time,ode.system,numberOfParameters,noiseFixed, observedVariables=1:ncol(data),
                 temperMismatchParameter=FALSE,
                 initialisedParameters=NULL,
