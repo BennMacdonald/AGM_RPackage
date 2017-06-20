@@ -49,7 +49,6 @@ Species <<- NULL
 #'
 #' @examples
 #' 
-#' #load("LV SD Noise 0.31 Average SNR 10 1.RData")
 #' dataTest <- LV_example_dataset$data
 #' timeTest <- LV_example_dataset$time
 #' noiseTest <- LV_example_dataset$noise
@@ -174,7 +173,7 @@ agm <- function(data,time,ode.system,numberOfParameters,noiseFixed, observedVari
   ### population MCMC. Defaults to working directory
   
   if (is.null(saveFile)){
-    saveFile <- paste("",getwd(),"/AGM Results.R",sep="")
+    saveFile <- paste("",getwd(),"/AGM Results.Rdata",sep="")
   }
   
   ### Set-up lambda if tempering using the LB2 or LB10 schemes
