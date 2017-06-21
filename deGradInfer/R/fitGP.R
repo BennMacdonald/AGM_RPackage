@@ -79,11 +79,10 @@ fitModel <- function(model, display, covtype) {
 
       }
  
-      
       models[[i]] = gpOptimise(model, display=display)
       ll.rec[i] = gpLogLikelihood(models[[i]]) 
     }
-    print(ll.rec)
+ 
     best = which.max(ll.rec)
     
     return(models[[best]]) 

@@ -5,27 +5,27 @@
 #' @param width Width of random walk proposal
 #'
 #' @return List with proposed parameters, indicator variable of which
-#' parameters have changed, old and new proposal probabilities (if 
+#' parameters have changed, old and new proposal probabilities (if
 #'
 #' @importFrom gdata resample
 proposeParamsMCMC <- function(oldParams, inferredParams, width) {
-  
+
   changed = matrix(0, length(oldParams), 1)
   newParams = oldParams
 
   for(i in 1:length(inferredParams)) {
-    choice = resample(inferredParams, 1) 
-     
-    changed[choice] = 1  
-    param = choice 
+    choice = resample(inferredParams, 1)
+
+    changed[choice] = 1
+    param = choice
 
     # Gaussian random walk proposal (like in Calderhead)
     newParams[param] = newParams[param] + width[param]*rnorm(1)
-    
+
     # Log Gaussian random walk proposal
     # newParams[param] = exp(log(newParams[param]) + width[param]*rnorm(1))
   }
-  
+
 
   return(list(params = newParams, changed=changed, oldProb=1, newProb=1))
 }
@@ -36,11 +36,11 @@ uniformProposal <- function(oldParam, range, limit) {
     newParam = oldParam + runif(1)*range
   } else {
     newParam = oldParam - runif(1)*range
-  } 
+  }
 
   while(newParam > limit) {
     newParam = newParam - limit
-  } 
+  }
 
   while(newParam < 0) {
     newParam = limit + newParam
@@ -49,11 +49,11 @@ uniformProposal <- function(oldParam, range, limit) {
 }
 
 # Log likelihood of one species
-calculateLogLikelihoodMCMC <- function(params, gpFit, X, lambda, timePoints, 
+calculateLogLikelihoodMCMC <- function(params, gpFit, X, lambda, timePoints,
   auxVars, species, chain) {
   # Calculate summary statistics
   gpSummary = likelihoodUtil(params, X, lambda, timePoints, auxVars, gpFit, species, chain)
-  
+
   noiseA = gpSummary$noiseA
   gradDiff = gpSummary$gradDiff
   invK = gpSummary$invK
@@ -62,25 +62,22 @@ calculateLogLikelihoodMCMC <- function(params, gpFit, X, lambda, timePoints,
   if(gpSummary$error) {
     logLikelihood = -1e6
     gpXPrior = 1e6
-  } else { 
+  } else {
     # Prior for latent variables
     gpXPrior = t.default(X[,species,drop=F]) %*% invK %*% X[,species,drop=F]
-  
+
     # Main log likelihood term
-    
+
     if(auxVars$Kchanged == species ||
        auxVars$lambdaChanged == species) {
       invNoiseA = NULL
       try(invNoiseA <- solve.default(noiseA), silent=T)
-      
-      if(!is.null(invNoiseA)) 
-        invNoiseA.temp <<- c(invNoiseA)
     } else {
-      invNoiseA = matrix(invNoiseA.rec[[chain]][, species], 
-                         length(timePoints), 
+      invNoiseA = matrix(auxVars$invNoiseA.rec[[chain]][, species],
+                         length(timePoints),
                          length(timePoints))
     }
-    
+
     if(!is.null(invNoiseA)) {
       #browser()
       prodXdot = t.default(gradDiff) %*% invNoiseA %*% gradDiff
@@ -92,8 +89,8 @@ calculateLogLikelihoodMCMC <- function(params, gpFit, X, lambda, timePoints,
     }
   }
 
-  return(list(gpXPrior = -0.5 * gpXPrior, logLikelihood = logLikelihood, m = m, 
-              gradDiff=gradDiff, invK=invK, A=gpSummary$A, K=gpSummary$K, 
-              deriv.m = gpSummary$deriv.m, 
-              noiseA=noiseA, error=gpSummary$error))
+  return(list(gpXPrior = -0.5 * gpXPrior, logLikelihood = logLikelihood, m = m,
+              gradDiff=gradDiff, invK=invK, A=gpSummary$A, K=gpSummary$K,
+              deriv.m = gpSummary$deriv.m,
+              noiseA=noiseA, invNoiseA=invNoiseA, error=gpSummary$error))
 }

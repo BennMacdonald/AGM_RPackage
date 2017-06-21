@@ -1,4 +1,4 @@
-### This script creates the Vyshemirsky And Girolami model 4. It sets up the 
+### This script creates the Vyshemirsky And Girolami model 4. It sets up the
 	### odes and begins preparation for the MCMC to be set-up/run. Note:
 	### Correction has been made from original publication and this model
 	### follows the CORRECTED description
@@ -48,24 +48,24 @@ gradientsVGModel4Full <- function(params,X,timepoints=NULL,auxVars,species
 
 	dydt <- switch(species,
 
-		- params[1]*X[,1] - params[2]*X[,1]*X[,3] + 
+		- params[1]*X[,1] - params[2]*X[,1]*X[,3] +
 		params[3]*X[,4]
 	,
 		params[1]*X[,1]
 	,
-		- params[2]*X[,1]*X[,3] + params[3]*X[,4] + 
+		- params[2]*X[,1]*X[,3] + params[3]*X[,4] +
 		params[7]*X[,7]
 	,
-		params[2]*X[,1]*X[,3] - params[3]*X[,4] - 
+		params[2]*X[,1]*X[,3] - params[3]*X[,4] -
 		params[4]*X[,4]
 	,
-		params[4]*X[,4] - params[5]*X[,5]*X[,6] + 
+		params[4]*X[,4] - params[5]*X[,5]*X[,6] +
 		params[6]*X[,7]
 	,
-		- params[5]*X[,5]*X[,6] + params[6]*X[,7] + 
+		- params[5]*X[,5]*X[,6] + params[6]*X[,7] +
 		params[7]*X[,7]
 	,
-		params[5]*X[,5]*X[,6] - params[6]*X[,7] - 
+		params[5]*X[,5]*X[,6] - params[6]*X[,7] -
 		params[7]*X[,7]
 
 			  )
@@ -74,7 +74,7 @@ gradientsVGModel4Full <- function(params,X,timepoints=NULL,auxVars,species
 }
 
 
-### Creating function odeVG. This will be called in a later stage, during the 
+### Creating function odeVG. This will be called in a later stage, during the
 	### population MCMC stage and is similar to the gradient
 	### specification above. If using the function "cbind", then
 	### each element will be one equation.
@@ -85,24 +85,24 @@ odeVGModel4Full <- function(t,X,params)
 
 	dydt <- c(
 
-		- params[1]*X[1] - params[2]*X[1]*X[3] + 
+		- params[1]*X[1] - params[2]*X[1]*X[3] +
 		params[3]*X[4]
 	,
 		params[1]*X[1]
 	,
-		- params[2]*X[1]*X[3] + params[3]*X[4] + 
-		params[7]*Species[7]
-	,
-		params[2]*X[1]*X[3] - params[3]*X[4] - 
-		params[4]*X[4]
-	,
-		params[4]*X[4] - params[5]*X[5]*X[6] + 
-		params[6]*X[7]
-	,
-		- params[5]*X[5]*X[6] + params[6]*X[7] + 
+		- params[2]*X[1]*X[3] + params[3]*X[4] +
 		params[7]*X[7]
 	,
-		params[5]*X[5]*X[6] - params[6]*X[7] - 
+		params[2]*X[1]*X[3] - params[3]*X[4] -
+		params[4]*X[4]
+	,
+		params[4]*X[4] - params[5]*X[5]*X[6] +
+		params[6]*X[7]
+	,
+		- params[5]*X[5]*X[6] + params[6]*X[7] +
+		params[7]*X[7]
+	,
+		params[5]*X[5]*X[6] - params[6]*X[7] -
 		params[7]*X[7]
 
 			 )

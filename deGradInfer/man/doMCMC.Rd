@@ -3,7 +3,7 @@
 \name{doMCMC}
 \alias{doMCMC}
 \title{Main MCMC function
-Runs the MCMC for the specified number of iterations and returns the 
+Runs the MCMC for the specified number of iterations and returns the
 sampled parameter values}
 \usage{
 doMCMC(timePoints, data, auxVars, options)
@@ -22,6 +22,6 @@ List with samples parameters and information about the sampling run.
 }
 \description{
 Main MCMC function
-Runs the MCMC for the specified number of iterations and returns the 
+Runs the MCMC for the specified number of iterations and returns the
 sampled parameter values
 }

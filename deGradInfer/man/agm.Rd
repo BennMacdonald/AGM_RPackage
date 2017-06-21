@@ -8,7 +8,7 @@ agm(data, time, ode.system, numberOfParameters, noiseFixed,
   observedVariables = 1:ncol(data), temperMismatchParameter = FALSE,
   initialisedParameters = NULL, chainNum = 20, gpCovType = "rbf",
   saveFile = NULL, defaultTemperingScheme = NULL, maxIterations = 3e+05,
-  showPlot = TRUE, showProgress = FALSE, mismatchParameterValues = NULL,
+  showPlot = FALSE, showProgress = FALSE, mismatchParameterValues = NULL,
   originalSignalOnlyPositive = FALSE, defaultPrior = NULL,
   explicit = FALSE, explicitNoiseInfer = TRUE)
 }
@@ -39,7 +39,7 @@ agm(data, time, ode.system, numberOfParameters, noiseFixed,
 
 \item{maxIterations}{A scalar specifying the number of total MCMC iterations. Default is \code{maxIterations=300000}.}
 
-\item{showPlot}{Logical: whether plots of the MCMC progress should be displayed. Default is \code{showPlot=TRUE}.}
+\item{showPlot}{Logical: whether plots of the MCMC progress should be displayed. Default is \code{showPlot=FALSE}.}
 
 \item{showProgress}{Logical: whether \% completion and various parameter values should be printed to the workspace. Default is \code{showProgress=FALSE}.}
 
@@ -64,7 +64,6 @@ The parameters \code{ode.system} should be a function of the form \code{f(t, X, 
 }
 \examples{
 
-#load("LV SD Noise 0.31 Average SNR 10 1.RData")
 dataTest <- LV_example_dataset$data
 timeTest <- LV_example_dataset$time
 noiseTest <- LV_example_dataset$noise

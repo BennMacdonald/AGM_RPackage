@@ -19,10 +19,11 @@ LV_func = function(t, X, params) {
   return(dxdt)
 }
 
-result.file = paste("",getwd(),"/AGM Results.Rdata",sep="")
- 
+result.file = paste("",getwd(),"/tests_temp.Rdata",sep="")
+
 agm(data=dataTest,time=timeTest,noiseFixed=0.31,ode.system=LV_func,
      numberOfParameters=4,temperMismatchParameter=TRUE, saveFile=result.file,
+     showPlot=FALSE,
      chainNum=5, maxIterations=500,originalSignalOnlyPositive=TRUE,
      defaultPrior="Gamma",defaultTemperingScheme="LB10")
 
@@ -34,9 +35,6 @@ test_that("Likelihood is improved", {
   expect_gt(paramsMCMC$lLRec[latest], paramsMCMC$lLRec[2])
 })
 
-print(paramsMCMC$lLRec[latest])
-print(paramsMCMC$parameters[5,])
-
 # Temporary test to check everything remains the same
 test_that("Something changed", {
   expect_lt(abs(paramsMCMC$lLRec[latest] - -6.381104), 1e-5)
@@ -45,4 +43,3 @@ test_that("Something changed", {
   expect_lt(abs(paramsMCMC$parameters[5,3]-1.722465), 1e-5)
   expect_lt(abs(paramsMCMC$parameters[5,4]-0.6981029), 1e-5)
 })
-  
