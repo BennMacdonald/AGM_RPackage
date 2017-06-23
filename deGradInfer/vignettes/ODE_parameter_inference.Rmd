@@ -1,0 +1,168 @@
+---
+title: "ODE parameter inference with deGradInfer"
+author: "Benn MacDonald and Frank Dondelinger"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+bibliography: deGradInfer.bib
+vignette: >
+  %\VignetteIndexEntry{ODE parameter inference}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{echo=FALSE}
+set.seed(10)
+```
+
+The package `deGradInfer` is an R package for efficient parameter inference in systems of ordinary differential equations (ODEs), using adaptive gradient matching via Gaussian processes. This implementation follows from the work in [@calderhead2007; @dondelinger2013; @macdonald2017], although the software has been extended with several crucial features to make it robust and useful for practical applications. Features include:
+
+* Specifying custom ODE systems as R functions.
+* Dealing with missing/unobserved variables.
+* Visualization for monitoring MCMC run evolution.
+* Specification of tolerable mismatch between data and inferred ODE dynamics.
+
+In the next section, we will briefly sketch the underlying statistical model and inference, before moving on to the practical examples of how to use the package.
+
+# Model and Inference
+
+The package implements the adaptive gradient matching approach of [@dondelinger2013], with the option of using parallel tempering to infer the mismatch parameter as described in [@macdonald2017]. The advantage of gradient matching as a parameter inference technique is that it does not require us to numerically solve the ODE system at each step, a potentially costly operation for large systems. 
+
+Briefly, we model each variable in the ODE system with a Gaussian process:
+
+and use the properties of Gaussian processes to obtain a model for the gradient $X'$, which we combine with the ODE system model via a product of experts:
+
+We can integrate out the latent variables $X$ and do inference over the joint model $joint$. A graphical model of AGM can be seen in Figure...
+
+Parallel tempering can be used to infer the mismatch parameters...
+
+Inference is done using population MCMC, which can deal with the multimodal posterior landscape, and will give a posterior distribution for the parameters, in addition to the mean estimates.
+
+# Specifying ODE systems as R functions
+
+We will use the example of a simple Lotka-Volterra prey-predator system. This consists of two variables representing a predator species and a prey species. The system is governed by four parameters and takes the following form:
+
+$$
+\frac{dx}{dt} = \alpha x - \beta x y\\
+\frac{dy}{dt} = \delta x y - \gamma y
+$$
+
+where $x$ represents the number of prey and $y$ represents the number of predators.
+
+In order to use `deGradInfer`, we need to represent this system as an R function. Our implementation is inspired by the package `deSolve` for numerically solving ODE systems represented as R functions. In particular, we require the function to be of the form `func <- function(t,X,params,...)` where `t` is a $T$-dimensional vector of time points, `X` is a $T \times K$ matrix containing the values for the $K$ variables in the system, `params` is a $p$-dimensional vector of parameters, and `...` optionally denotes other parameters that may be passed to the function. The output should be a $T \times K$ matrix of the gradients $\frac{dx_k}{dt}$ for all variables $k$. For the Lotka-Volterra system, we can define an R function as:
+
+```{r}
+LV_func = function(t, X, params) {
+	dxdt = cbind(
+	  X[,1]*(params[1] - params[2]*X[,2]), # Prey
+ 	- X[,2]*(params[3] - params[4]*X[,1])  # Predators
+	)
+	return(dxdt)
+}
+```
+
+Note that if one wishes to use their function with `deSolve`, it needs to be compatible with scalar `t`, and additionally needs to return a list (this is a requirement by `deSolve` to allow for returning global values that are needed at each time point; we do not currently return any such global values). This is best achieved by writing a wrapper for the function:
+
+```{r}
+# Wrapper function
+deSolve_LV_func = function(t,y,params) list(LV_func(t,matrix(y,1,length(y)),params))
+
+# Generate some data
+test.times = seq(0,2,0.1)
+test.data = ode(c(5,3), timeTest, deSolve_LV_func, c(2,1,4,1))
+test.data = dataTest[,2:3] + rnorm(dim(dataTest)[1]*2,0,0.1) # add some observation noise
+```
+
+
+# Parameter inference in the Lotka-Volterra system
+
+The main interface to the package is provided via the `agm` function. The user needs to provide the data for the observed time points, the R function representing the ODE system, the number of parameters in the system, and the expected standard deviation of the observational noise. Note that we do not currently allow the noise to be inferred for the gradient matching approach, as this tends to overestimate the true noise in the data.
+
+Here we only run the model for 1000 iterations, which is not sufficient to reach convergence, but is good enough for demonstration purposes:
+
+```{r} 
+agm(test.data,test.times,LV_func,4,maxIterations=1000)
+```
+
+By default, the results are saved to disk in an Rdata file `AGM_Results.Rdata`. We can load the results to inspect the posterior distribution of the parameter values. 
+
+```{r} 
+library('ggplot2')
+load('AGM_Results.Rdata')
+
+
+plotting.frame = data.frame(Param.Values=c(paramsMCMC$paramsRec), 
+                            Param.Num=rep(1:4, each=dim(paramsMCMC$paramsRec)[1]))
+
+ggplot(plotting.frame, aes(x=Param.Samples)) +
+  facet_wrap(~Param.Num) + 
+  geom_histogram()
+```
+
+We can also inspect the evolution of the log likelihood:
+
+```{r} 
+qplot(x=1:length(paramsMCMC$lLRec), y=paramsMCMC$lLRec) + ylab('Log-likelihood')
+```
+
+## Using tempering to infer the mismatch parameter
+
+The mismatch between the Gaussian process model and the ODE model of the system is captured by the parameter $\lambda$. [@macdonald2017] introduced a tempering scheme to improve inference of this parameter. This scheme can be used in our model by setting the `temperMismatchParameter` option.
+
+```{r,eval=FALSE} 
+agm(test.data,test.times,LV_func,4,temperMismatchParameter=TRUE)
+```
+
+## Parameter inference by explicitly solving the ODE system
+
+For comparison purposes, we also implemented a version of the MCMC algorithm that explicitly solves the ODE system at each step (with `deSolve`), rather than using gradient matching. This can be invoked by using the `explicit` flag.
+
+```{r,eval=FALSE} 
+agm(test.data,test.times,LV_func,6,explicit=TRUE)
+```
+Note that the number of parameters has increased; this is because the initial states of the ODE at the first time point also need to be inferred when using this method. So in the Lotka-Volterra case, the number of parameters increases by 2 because there are 2 variables in the ODE system.
+
+# A slightly bigger example
+
+The package can in principle deal with ODE systems of any size, although in practice the achievable size will depend on memory and running time considerations. Here we demonstrate the performance on an ODE system with five equations and siz parameters, derived from [@vyshemirksy].
+
+```{r, eval=FALSE} 
+# Function encoding the Vyshemirsky and Girolami ODE model 1.
+VG_func <- function(t, X, params) {
+  MM <- ((params[5]*X[,5])/(params[6]+X[,5]))
+  
+  dxdt <- cbind( - params[1]*X[,1] - params[2]*X[,1]*X[,3] + 
+                   params[3]*X[,4],
+                 params[1]*X[,1],
+                 - params[2]*X[,1]*X[,3] + params[3]*X[,4] + 
+                   MM,
+                 params[2]*X[,1]*X[,3] - params[3]*X[,4] - 
+                   params[4]*X[,4],
+                 params[4]*X[,4] - MM)
+  
+  return(dxdt)
+}
+
+# Generate data
+timeTest = c(0,1,2,4,5,7,10,15,20,30,40,50,60,80,100)
+dataTest = ode(c(1,0,1,0,0), timeTest, 
+               function(t,y,params) list(VG_func(t,matrix(y,1,length(y)),params)), c(0.07,0.6,0.05,0.3,0.017,0.3))
+dataTest = dataTest[,2:6] + rnorm(dim(dataTest)[1]*5,0,0.01)
+
+
+# Run adaptive gradient matching
+agm(data=dataTest,time=timeTest,ode.system=VG_func, numberOfParameters=6)
+```
+
+# Inference with unobserved variables
+
+If not all variables are observed, we can infer the unobserved variables by using a latent Gaussian process. Note that the `data` matrix still needs to have a column for each variable, but unobserved variables can be set to `NA`, and the observed variables need to be specified in `observedVariables`. Partially observed variables are not currently supported.
+
+```{r, eval=FALSE} 
+# Remove the observations of the first variable
+dataTest[,1] = NA
+
+# Run adaptive gradient matching
+agm(data=dataTest,time=timeTest,ode.system=VG_func, observedVariables=2:5, numberOfParameters=6)
+```
+
+# References
