@@ -239,22 +239,28 @@ doMCMC <- function(timePoints, data, auxVars, options) {
         lambda[chain2,] = lambda.temp
 
         A.rec.temp = auxVars$A.rec[[chain1]]
-        deriv.m.rec.temp = auxVars$deriv.m.rec[[chain1]]
-        invK.rec.temp = auxVars$invK.rec[[chain1]]
+        #deriv.m.rec.temp = auxVars$deriv.m.rec[[chain1]]
+        #invK.rec.temp = auxVars$invK.rec[[chain1]]
+        K.u.rec.temp = auxVars$K.u.rec[[chain1]]
         K.rec.temp = auxVars$K.rec[[chain1]]
-        invNoiseA.rec.temp = auxVars$invNoiseA.rec[[chain1]]
+        #invNoiseA.rec.temp = auxVars$invNoiseA.rec[[chain1]]
+        noiseA.u.rec.temp = auxVars$noiseA.u.rec[[chain1]]
 
         auxVars$A.rec[[chain1]] = auxVars$A.rec[[chain2]]
-        auxVars$deriv.m.rec[[chain1]] = auxVars$deriv.m.rec[[chain2]]
-        auxVars$invK.rec[[chain1]] = auxVars$invK.rec[[chain2]]
+        auxVars$noiseA.u.rec[[chain1]] = auxVars$noiseA.u.rec[[chain2]]
+        #auxVars$deriv.m.rec[[chain1]] = auxVars$deriv.m.rec[[chain2]]
+        #auxVars$invK.rec[[chain1]] = auxVars$invK.rec[[chain2]]
         auxVars$K.rec[[chain1]] = auxVars$K.rec[[chain2]]
-        auxVars$invNoiseA.rec[[chain1]] = auxVars$invNoiseA.rec[[chain2]]
+        auxVars$K.u.rec[[chain1]] = auxVars$K.u.rec[[chain2]]
+        #auxVars$invNoiseA.rec[[chain1]] = auxVars$invNoiseA.rec[[chain2]]
 
         auxVars$A.rec[[chain2]] = A.rec.temp
-        auxVars$deriv.m.rec[[chain2]] = deriv.m.rec.temp
-        auxVars$invK.rec[[chain2]] = invK.rec.temp
+        auxVars$noiseA.u.rec[[chain2]] = noiseA.u.rec.temp
+        #auxVars$deriv.m.rec[[chain2]] = deriv.m.rec.temp
+        #auxVars$invK.rec[[chain2]] = invK.rec.temp
         auxVars$K.rec[[chain2]] = K.rec.temp
-        auxVars$invNoiseA.rec[[chain2]] = invNoiseA.rec.temp
+        auxVars$K.u.rec[[chain2]] = K.u.rec.temp
+        #auxVars$invNoiseA.rec[[chain2]] = invNoiseA.rec.temp
 
 	      swappedChains <- swappedChains + 1
 
@@ -510,6 +516,8 @@ sampleGPX <- function(gpFit, sigma, x, y, lambda, parameters,
     ratio = 0
   }
 
+  if(newLL$LL - 0.5 * newLL$log.det + newLL$gpXPrior > 1e4) browser()
+  
   if(!is.nan(ratio) &&  min(1, ratio) > runif(1) &&
     (options$allowNeg || all(x.new[,species] > 0))) {
 
@@ -524,6 +532,7 @@ sampleGPX <- function(gpFit, sigma, x, y, lambda, parameters,
     auxVars = oldLL$auxVars; x = x
     data.LL = x.ll
   }
+
 
 
   return(list(gp=sampled.gp, accept=accept, changed=proposal$changed, lL=lL, auxVars=auxVars,
@@ -772,11 +781,13 @@ calculateLogLikelihood <- function(params, gpFit, X, lambda, timePoints, auxVars
     LL = LL + LL_temp$logLikelihood
 
     # Update recorded values
-    auxVars$invK.rec[[chain]][, species] = c(LL_temp$invK)
+    #auxVars$invK.rec[[chain]][, species] = c(LL_temp$invK)
+    auxVars$K.u.rec[[chain]][, species] = c(LL_temp$K.u)
     auxVars$K.rec[[chain]][, species] = c(LL_temp$K)
+    auxVars$noiseA.u.rec[[chain]][, species] = c(LL_temp$noiseA.u)
     auxVars$A.rec[[chain]][, species] = c(LL_temp$A)
-    auxVars$deriv.m.rec[[chain]][, species] = c(LL_temp$deriv.m)
-    auxVars$invNoiseA[[chain]][, species] = c(LL_temp$invNoiseA)
+    #auxVars$deriv.m.rec[[chain]][, species] = c(LL_temp$deriv.m)
+    #auxVars$invNoiseA[[chain]][, species] = c(LL_temp$invNoiseA)
 
     if(includeDet) {
       log.det = log.det + determinant.matrix(LL_temp$noiseA, logarithm=T)$modulus +

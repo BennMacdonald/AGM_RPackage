@@ -6,7 +6,7 @@
 #' @param time A vector containing the time points at which the observations were made.
 #' @param ode.system A function describing the ODE system. See Details for more information.
 #' @param numberOfParameters A scalar specifying the number of parameters in the ODE system. If explicitly solving the ODE system, the number of parameters will (usually) be equal to the number of ODE parameters plus the number of initial conditions of the system.
-#' @param noiseFixed A scalar specifiying the value at which to fix the standard deviation of the observational noise.
+#' @param noise.sd A scalar specifiying the value at which to fix the standard deviation of the observational noise. Default \code{noise.sd=1e-3}.
 #' @param observedVariables A vector specifying which variables are observed in the system. Default is \code{observedVariables=1:ncol(data)} (fully observed system).
 #' @param temperMismatchParameter Logical: whether tempering of the gradient mismatch parameter be carried out? Default is \code{temperMismatchParameter=FALSE}.
 #' @param initialisedParameters A vector containing ODE parameters at which to intialise the MCMC. Can be set as \code{NULL} to initialise with a random draw from the prior distribution. Default is \code{initialisedParameters=NULL}.
@@ -44,12 +44,12 @@
 #' 	return(dxdt)
 #' }
 #'
-#' agm(data=dataTest,time=timeTest,noiseFixed=0.31,ode.system=LV_func,
+#' agm(data=dataTest,time=timeTest,noise.sd=0.31,ode.system=LV_func,
 #'     numberOfParameters=4,temperMismatchParameter=TRUE,
 #'     chainNum=5, maxIterations=200,originalSignalOnlyPositive=TRUE,
 #'     defaultPrior="Gamma",defaultTemperingScheme="LB10")
 #'
-agm <- function(data,time,ode.system,numberOfParameters,noiseFixed, observedVariables=1:ncol(data),
+agm <- function(data,time,ode.system,numberOfParameters,noise.sd=1e-3, observedVariables=1:ncol(data),
                 temperMismatchParameter=FALSE,
                 initialisedParameters=NULL,
                 chainNum=20,gpCovType="rbf",saveFile=NULL,
@@ -202,8 +202,8 @@ agm <- function(data,time,ode.system,numberOfParameters,noiseFixed, observedVari
 
   auxVars$ode.system = ode.system
 
-  if (!is.null(noiseFixed)){
-    auxVars$sigmaTrue <- noiseFixed
+  if (!is.null(noise.sd)){
+    auxVars$sigmaTrue <- noise.sd
   }
 
   if(!is.null(defaultPrior)){

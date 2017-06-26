@@ -21,7 +21,7 @@ LV_func = function(t, X, params) {
 
 result.file = paste("",getwd(),"/tests_temp.Rdata",sep="")
 
-agm(data=dataTest,time=timeTest,noiseFixed=0.31,ode.system=LV_func,
+agm(data=dataTest,time=timeTest,noise.sd=0.31,ode.system=LV_func,
      numberOfParameters=4,temperMismatchParameter=TRUE, saveFile=result.file,
      showPlot=FALSE,
      chainNum=5, maxIterations=500,originalSignalOnlyPositive=TRUE,

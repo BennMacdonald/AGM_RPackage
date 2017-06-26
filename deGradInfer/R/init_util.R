@@ -78,8 +78,9 @@ setupChains <- function(timePoints, data, auxVars, options) {
   # These will be updated in some steps of the MCMC,
   # but not in others, so it's most efficient to
   # keep them in memory.
-  auxVars$A.rec = list();
-  auxVars$K.rec = list(); auxVars$invK.rec = list()
+  auxVars$A.rec = list(); auxVars$noiseA.u.rec = list();
+  auxVars$K.rec = list(); auxVars$K.u.rec = list();  
+  auxVars$invK.rec = list()
   auxVars$invNoiseA.rec = list(); auxVars$deriv.m.rec = list()
 
   # Initialise Parameters
@@ -134,20 +135,25 @@ setupChains <- function(timePoints, data, auxVars, options) {
 
   for(chain in 1:chainNum) {
     auxVars$A.rec[[chain]] = matrix(0, dim(data)[1]^2, dim(data)[2])
+    auxVars$noiseA.u.rec[[chain]] = matrix(0, dim(data)[1]^2, dim(data)[2])
     auxVars$invNoiseA.rec[[chain]] = matrix(0, dim(data)[1]^2, dim(data)[2])
     auxVars$K.rec[[chain]] = matrix(0, dim(data)[1]^2, dim(data)[2])
+    auxVars$K.u.rec[[chain]] = matrix(0, dim(data)[1]^2, dim(data)[2])
     auxVars$invK.rec[[chain]] = matrix(0, dim(data)[1]^2, dim(data)[2])
     auxVars$deriv.m.rec[[chain]] = matrix(0, dim(data)[1]^2, dim(data)[2])
+    
 
     for(species in auxVars$speciesList) {
       auxVars$Kchanged = species
       ll.result = calculateLogLikelihoodMCMC(parameters[chain,], gpFit[[chain]], x[[chain]], lambda[chain,species], timePoints,
                                              auxVars, species, chain)
       auxVars$A.rec[[chain]][,species] = c(ll.result$A)
-      auxVars$invNoiseA.rec[[chain]][,species] = c(ll.result$invNoiseA)
+      auxVars$noiseA.u.rec[[chain]][,species] = c(ll.result$noiseA.u)
+      #auxVars$invNoiseA.rec[[chain]][,species] = c(ll.result$invNoiseA)
       auxVars$K.rec[[chain]][,species]  = c(ll.result$K)
-      auxVars$invK.rec[[chain]][,species] = c(ll.result$invK)
-      auxVars$deriv.m.rec[[chain]][,species] = c(ll.result$deriv.m)
+      auxVars$K.u.rec[[chain]][,species]  = c(ll.result$K.u)
+      #auxVars$invK.rec[[chain]][,species] = c(ll.result$invK)
+      #auxVars$deriv.m.rec[[chain]][,species] = c(ll.result$deriv.m)
     }
 
     auxVars$Kchanged = 0
@@ -325,8 +331,50 @@ adjustExchangeProposal <- function(tuning, temperatures, temp.exponent) {
   return(temperatures)
 }
 
+# New method: Use cholesky decomposition
 # Calculate summary statistics for likelihood
 likelihoodUtil <- function(params, X, lambda, timePoints, auxVars, gpFit, species, chain) {
+  odeNoiseParam = lambda
+  error = FALSE
+  # Gradient from the ODE system
+  f = getODEGradient(X, timePoints, params, auxVars, species)
+  f = as.matrix(f)
+  
+  gpCovs = getGPCovs(gpFit, auxVars)
+  
+  # If GP parameters have changed, recalculate K and derivatives, and A
+  if(auxVars$Kchanged == species) {
+    # Try inverse of K
+    # Cholesky decomposition
+    K.u = chol(gpCovs$K)
+    
+    invK.starK = backsolve(K.u, backsolve(K.u, gpCovs$starK, transpose=TRUE))
+    
+    A = gpCovs$starKstar - gpCovs$Kstar %*% invK.starK
+    
+    K = gpCovs$K
+  } else {
+    K.u = matrix(auxVars$K.u.rec[[chain]][, species], length(f), length(f))
+    A = matrix(auxVars$A.rec[[chain]][, species], length(f), length(f))
+    K = matrix(auxVars$K.rec[[chain]][, species], length(f), length(f))
+  }
+  
+  invK.X = backsolve(K.u, backsolve(K.u, X[,species,drop=FALSE], transpose=TRUE))
+    
+  m = gpCovs$Kstar %*% invK.X
+  
+  I = auxVars$I
+  
+  noiseA = A + (odeNoiseParam+1e-3)*I
+  return(list(m=m, noiseA=noiseA, gradDiff = f-m,
+              error=error, invK.X=invK.X, K.u=K.u, 
+              A=A, K=K))
+}
+
+
+# Old method: Calculate inverse directly
+# Calculate summary statistics for likelihood
+likelihoodUtil_old <- function(params, X, lambda, timePoints, auxVars, gpFit, species, chain) {
   odeNoiseParam = lambda
   error = FALSE
   # Gradient from the ODE system
@@ -340,6 +388,8 @@ likelihoodUtil <- function(params, X, lambda, timePoints, auxVars, gpFit, specie
 
     # Try inverse of K
     try(invK <- solve.default(gpCovs$K), silent=T)
+    
+    #if(any(eigen(invK, symmetric = TRUE)$values < 0)) browser()
 
     if(is.null(invK)) {
       invK = auxVars$I

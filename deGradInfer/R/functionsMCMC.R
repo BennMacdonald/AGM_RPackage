@@ -49,10 +49,55 @@ uniformProposal <- function(oldParam, range, limit) {
 }
 
 # Log likelihood of one species
+# Use cholesky decomposition to solve for inverse matrices
 calculateLogLikelihoodMCMC <- function(params, gpFit, X, lambda, timePoints,
-  auxVars, species, chain) {
+                                       auxVars, species, chain) {
   # Calculate summary statistics
   gpSummary = likelihoodUtil(params, X, lambda, timePoints, auxVars, gpFit, species, chain)
+  
+  noiseA = gpSummary$noiseA
+  gradDiff = gpSummary$gradDiff
+  invK.X = gpSummary$invK.X
+  m = gpSummary$m
+  
+  if(gpSummary$error) {
+    logLikelihood = -1e6
+    gpXPrior = 1e6
+  } else {
+    # Prior for latent variables
+    gpXPrior = t.default(X[,species,drop=FALSE]) %*% invK.X 
+    
+    # Main log likelihood term
+    
+    if(auxVars$Kchanged == species ||
+       auxVars$lambdaChanged == species) {
+      noiseA.u = chol(noiseA)
+    } else {
+      noiseA.u = matrix(auxVars$noiseA.u.rec[[chain]][, species],
+                        length(timePoints),
+                        length(timePoints))
+    }
+    
+    #browser()
+    
+    # noiseA.u %*% invNoiseA %*% gradDiff
+    tempProd = backsolve(noiseA.u, gradDiff, transpose=TRUE)
+    prodXdot = t(tempProd) %*% tempProd
+    logLikelihood = - 0.5 * (prodXdot)
+    
+    if(logLikelihood > 1e4) browser()
+  }
+  
+  return(list(gpXPrior = -0.5 * gpXPrior, logLikelihood = logLikelihood, m = m,
+              gradDiff=gradDiff, K.u=gpSummary$K.u, A=gpSummary$A, K=gpSummary$K,
+              noiseA=noiseA, noiseA.u=noiseA.u, error=gpSummary$error))
+}
+
+# Log likelihood of one species
+calculateLogLikelihoodMCMC_old <- function(params, gpFit, X, lambda, timePoints,
+  auxVars, species, chain) {
+  # Calculate summary statistics
+  gpSummary = likelihoodUtil_old(params, X, lambda, timePoints, auxVars, gpFit, species, chain)
 
   noiseA = gpSummary$noiseA
   gradDiff = gpSummary$gradDiff
@@ -87,6 +132,8 @@ calculateLogLikelihoodMCMC <- function(params, gpFit, X, lambda, timePoints,
       gpXPrior = 1e6
       gpSummary$error = T
     }
+    
+    if(logLikelihood > 1e4) browser()
   }
 
   return(list(gpXPrior = -0.5 * gpXPrior, logLikelihood = logLikelihood, m = m,

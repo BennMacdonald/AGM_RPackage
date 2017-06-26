@@ -3,7 +3,7 @@ title: "ODE parameter inference with deGradInfer"
 author: "Benn MacDonald and Frank Dondelinger"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
-bibliography: deGradInfer.bib
+bibliography: bibliography.bib
 vignette: >
   %\VignetteIndexEntry{ODE parameter inference}
   %\VignetteEngine{knitr::rmarkdown}
@@ -27,15 +27,19 @@ In the next section, we will briefly sketch the underlying statistical model and
 
 The package implements the adaptive gradient matching approach of [@dondelinger2013], with the option of using parallel tempering to infer the mismatch parameter as described in [@macdonald2017]. The advantage of gradient matching as a parameter inference technique is that it does not require us to numerically solve the ODE system at each step, a potentially costly operation for large systems. 
 
-Briefly, we model each variable in the ODE system with a Gaussian process:
+Briefly, assuming Gaussian noise on the observed variable $\mathbf{y}_k$ such that $P(y_k(t)) = \mathcal{N}(y_k(t)|x_k(t),\sigma_k)$, we can model the latent variables $\mathbf{x}_k$ using a Gaussian process prior:
 
-and use the properties of Gaussian processes to obtain a model for the gradient $X'$, which we combine with the ODE system model via a product of experts:
+$$P(\mathbf{x}_k|\Psi_k) = \mathcal{N}(\mathbf{x}_k|\mathbf{0}, \mathbf{C}_{\Psi_k}) $$
+where $\mathbf{C}_{\Psi_k}$ denotes a positive definite matrix of covariance functions with hyperparameters $\Psi_k$. We can use the properties of Gaussian processes to obtain a model for the gradient $\mathbf{\dot{x}}_k$, which we combine with the ODE system model via a product of experts:
 
-We can integrate out the latent variables $X$ and do inference over the joint model $joint$. A graphical model of AGM can be seen in Figure...
+$$P(\mathbf{\dot{x}}_k|\mathbf{X},\Theta,\Psi,\gamma_k) \propto P(\mathbf{\dot{x}}_k|\mathbf{x}_k,\Psi)P(\mathbf{\dot{x}}_k|\mathbf{X},\Theta,\gamma_k)$$
+where $\mathbf{X}$ is a $T \times K$ matrix where column $k$ corresponds to $\mathbf{x}_k$. Note that this approach essentially provides two models for $\mathbf{\dot{x}}_k$; a Gaussian process model which is based on a smoothing of the observed variables, and the ODE model, with parameters $\Theta$. The hyperparameters $\gamma_k$ allow for some Gaussian noise on the ODE estimates of the gradients, and thus effectively control the allowable mismatch between the ODE and Gaussian process estimates.
+
+We can integrate out the latent variables $\mathbf{\dot{X}}$ and do inference over the joint model $P(\mathbf{Y}, \mathbf{X}, mathbf{\Theta}, \mathbf{Psi}, mathbf{\sigma}$ [see @dondelinger2013 for details].
 
 Parallel tempering can be used to infer the mismatch parameters...
 
-Inference is done using population MCMC, which can deal with the multimodal posterior landscape, and will give a posterior distribution for the parameters, in addition to the mean estimates.
+Inference is done using population MCMC, which can deal with the multimodal posterior landscape, and will give a posterior distribution for the parameters, in addition to the posterior mean estimates.
 
 # Specifying ODE systems as R functions
 
@@ -63,13 +67,15 @@ LV_func = function(t, X, params) {
 Note that if one wishes to use their function with `deSolve`, it needs to be compatible with scalar `t`, and additionally needs to return a list (this is a requirement by `deSolve` to allow for returning global values that are needed at each time point; we do not currently return any such global values). This is best achieved by writing a wrapper for the function:
 
 ```{r}
+library('deSolve')
+
 # Wrapper function
 deSolve_LV_func = function(t,y,params) list(LV_func(t,matrix(y,1,length(y)),params))
 
 # Generate some data
 test.times = seq(0,2,0.1)
-test.data = ode(c(5,3), timeTest, deSolve_LV_func, c(2,1,4,1))
-test.data = dataTest[,2:3] + rnorm(dim(dataTest)[1]*2,0,0.1) # add some observation noise
+test.data = ode(c(5,3), test.times, deSolve_LV_func, c(2,1,4,1))
+test.data = test.data[,2:3] + rnorm(dim(test.data)[1]*2,0,0.1) # add some observation noise
 ```
 
 
@@ -80,7 +86,11 @@ The main interface to the package is provided via the `agm` function. The user n
 Here we only run the model for 1000 iterations, which is not sufficient to reach convergence, but is good enough for demonstration purposes:
 
 ```{r} 
-agm(test.data,test.times,LV_func,4,maxIterations=1000)
+#library('deGradInfer')
+set.seed(1)
+agm(test.data,test.times,LV_func,4,noise.sd=0.1,maxIterations=1000,temperMismatchParameter=TRUE,
+     chainNum=5, originalSignalOnlyPositive=TRUE,
+     defaultPrior="Gamma",defaultTemperingScheme="LB10")
 ```
 
 By default, the results are saved to disk in an Rdata file `AGM_Results.Rdata`. We can load the results to inspect the posterior distribution of the parameter values. 
@@ -88,7 +98,6 @@ By default, the results are saved to disk in an Rdata file `AGM_Results.Rdata`. 
 ```{r} 
 library('ggplot2')
 load('AGM_Results.Rdata')
-
 
 plotting.frame = data.frame(Param.Values=c(paramsMCMC$paramsRec), 
                             Param.Num=rep(1:4, each=dim(paramsMCMC$paramsRec)[1]))
@@ -109,7 +118,7 @@ qplot(x=1:length(paramsMCMC$lLRec), y=paramsMCMC$lLRec) + ylab('Log-likelihood')
 The mismatch between the Gaussian process model and the ODE model of the system is captured by the parameter $\lambda$. [@macdonald2017] introduced a tempering scheme to improve inference of this parameter. This scheme can be used in our model by setting the `temperMismatchParameter` option.
 
 ```{r,eval=FALSE} 
-agm(test.data,test.times,LV_func,4,temperMismatchParameter=TRUE)
+agm(test.data,test.times,LV_func,4,noise.sd=0.1,temperMismatchParameter=TRUE)
 ```
 
 ## Parameter inference by explicitly solving the ODE system
