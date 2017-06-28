@@ -38,13 +38,13 @@ doMCMC <- function(timePoints, data, auxVars, options) {
   #temp.exponent = 5
   #temperatures = seq(0, 1, length.out=chainNum)^temp.exponent
 
-	powers <- 1:chainNum
-	temp.exponent <- powers[options$temps]
-	temperatures <- c()
-	for(CHAIN in 1:chainNum)
-	{
-		temperatures[CHAIN] <- (CHAIN/chainNum)^temp.exponent
-	}
+  powers <- 1:chainNum
+  temp.exponent <- powers[options$temps]
+  temperatures <- c()
+  for(CHAIN in 1:chainNum)
+  {
+    temperatures[CHAIN] <- (CHAIN/chainNum)^temp.exponent
+  }
 
   lLchains = matrix(-1e6, chainNum, 1); lLRec = matrix(0, 0, 1)
   dataLLchains = matrix(0, chainNum, speciesNum)
@@ -55,6 +55,7 @@ doMCMC <- function(timePoints, data, auxVars, options) {
 
   lastMove = ''
   pick = 1
+
   for(i in 1:iterationNum) {
 
     if(options$showProgress && i %% recordRate == 0) {
@@ -64,38 +65,38 @@ doMCMC <- function(timePoints, data, auxVars, options) {
     }
 
 
-   ### Specify lambda values if tempering the mismatch parameter
-	if (auxVars$Mismatch$Tempering) { # For users who want to specify their own values
-		if (!is.null(auxVars$Mismatch$lambdaValues)){
-			lambda <- auxVars$Mismatch$lambdaValues
-		}
-		if (is.null(auxVars$Mismatch$lambdaValues)){ # Using the default LB2 or LB10 values
-			lambda <- options$lambda
-		}
-	}
+    ### Specify lambda values if tempering the mismatch parameter
+    if (auxVars$Mismatch$Tempering) { # For users who want to specify their own values
+      if (!is.null(auxVars$Mismatch$lambdaValues)){
+        lambda <- auxVars$Mismatch$lambdaValues
+      }
+      if (is.null(auxVars$Mismatch$lambdaValues)){ # Using the default LB2 or LB10 values
+        lambda <- options$lambda
+      }
+    }
 
 
-	# Sample Lambda
-	if (!auxVars$Mismatch$Tempering){
-       if(!options$explicit && runif(1) > 0.99) {
-         pick = resample(auxVars$speciesList, 1)
-         lambda.sampling = sampleLambda(lambda[chain,], gpFit[[chain]], x[[chain]],
-                                        parameters[chain,], timePoints, auxVars, pick,
-                                        chain, chainTemp)
-         lambda[chain,pick] = lambda.sampling$lambda
-         lLchains[chain] = lambda.sampling$lL.new
+    # Sample Lambda
+    if (!auxVars$Mismatch$Tempering){
+      if(!options$explicit && runif(1) > 0.99) {
+        pick = resample(auxVars$speciesList, 1)
+        lambda.sampling = sampleLambda(lambda[chain,], gpFit[[chain]], x[[chain]],
+                                       parameters[chain,], timePoints, auxVars, pick,
+                                       chain, chainTemp)
+        lambda[chain,pick] = lambda.sampling$lambda
+        lLchains[chain] = lambda.sampling$lL.new
 
-         #cat(lambda.sampling$lL.old, lambda.sampling$accept, lambda.sampling$lL.new, '\n')
+        #cat(lambda.sampling$lL.old, lambda.sampling$accept, lambda.sampling$lL.new, '\n')
 
-         if(lambda.sampling$accept) lastMove = 'LambdaAccept'
-         else lastMove = 'LambdaReject'
+        if(lambda.sampling$accept) lastMove = 'LambdaAccept'
+        else lastMove = 'LambdaReject'
 
-         tuning$proposeLambdaTemp[chain,pick] = tuning$proposeLambdaTemp[chain,pick] + 1
-         tuning$acceptLambdaTemp[chain,pick] = tuning$acceptLambdaTemp[chain,pick] + lambda.sampling$accept
+        tuning$proposeLambdaTemp[chain,pick] = tuning$proposeLambdaTemp[chain,pick] + 1
+        tuning$acceptLambdaTemp[chain,pick] = tuning$acceptLambdaTemp[chain,pick] + lambda.sampling$accept
 
-         if(lLchains[chain] > 1e4) browser()
-       }
-	}
+        if(lLchains[chain] > 1e4) browser()
+      }
+    }
 
 
     # Chain-specific Inference
@@ -111,8 +112,8 @@ doMCMC <- function(timePoints, data, auxVars, options) {
         pick = resample(auxVars$speciesList, 1)
 
         gp.sampling = sampleGPX(gpFit[[chain]], sigma[chain, pick], x[[chain]], y[,pick],
-                              lambda[chain,], parameters[chain,], timePoints, auxVars, pick,
-                              options$proposalGPTuning[[chain]][,pick], chain, chainTemp, options)
+                                lambda[chain,], parameters[chain,], timePoints, auxVars, pick,
+                                options$proposalGPTuning[[chain]][,pick], chain, chainTemp, options)
 
         gpFit[[chain]] = gp.sampling$gp
 
@@ -140,42 +141,42 @@ doMCMC <- function(timePoints, data, auxVars, options) {
           pick = resample(auxVars$observedSpeciesList, 1)
 
           noise.sampling = sampleNoise(sigma[chain, pick], x[[chain]][,pick], y[,pick],
-                               options, chain, pick, temperatures,auxVars)
+                                       options, chain, pick, temperatures,auxVars)
           sigma[chain, pick] = noise.sampling$sigma
           dataLLchains[chain, pick] = noise.sampling$data.LL
           tuning$proposeNoiseTemp[chain, species] =
             tuning$proposeNoiseTemp[chain, species] + 1
           tuning$acceptNoiseTemp[chain, species]  =
             tuning$acceptNoiseTemp[chain, species] +
-                                      noise.sampling$accept
+            noise.sampling$accept
           if(chain == chainNum) lastMove = 'Noise'
         }
-      # X Inference
+        # X Inference
       } else if(!options$explicit && i > options$burnin && u > 0.75) {
-          pick = resample(auxVars$speciesList, 1)
+        pick = resample(auxVars$speciesList, 1)
 
-          tuning$proposeXTemp[chain] = tuning$proposeXTemp[chain] + 1
-          X.sampling = sampleX(chainParams, chain, temperatures,
+        tuning$proposeXTemp[chain] = tuning$proposeXTemp[chain] + 1
+        X.sampling = sampleX(chainParams, chain, temperatures,
                              gpFit[[chain]], x[[chain]], y[,pick], lambda[chain,],
                              sigma[chain, pick], timePoints,
                              auxVars, options, pick)
 
-          x[[chain]][,pick] = X.sampling$x
-          if(chain == chainNum) lastMove = 'X'
-          lLchains[chain] = X.sampling$lL
-          dataLLchains[chain, pick] = X.sampling$data.LL
+        x[[chain]][,pick] = X.sampling$x
+        if(chain == chainNum) lastMove = 'X'
+        lLchains[chain] = X.sampling$lL
+        dataLLchains[chain, pick] = X.sampling$data.LL
 
-          tuning$acceptXTemp[chain, pick] = tuning$acceptXTemp[chain,pick] +
-            X.sampling$accept
-          auxVars = X.sampling$auxVars
+        tuning$acceptXTemp[chain, pick] = tuning$acceptXTemp[chain,pick] +
+          X.sampling$accept
+        auxVars = X.sampling$auxVars
 
-          if(lLchains[chain] > 1e4) browser()
-      # Parameter Inference
+        if(lLchains[chain] > 1e4) browser()
+        # Parameter Inference
       } else {
         sampling = sampleParams(chainParams, gpFit[[chain]], x[[chain]], y, lambda[chain,], sigma[chain,],
-                                  timePoints,
-                                  chainTemp,
-                                  auxVars, options, chain)
+                                timePoints,
+                                chainTemp,
+                                auxVars, options, chain)
 
         parameters[chain,] = sampling$parameters
 
@@ -187,7 +188,7 @@ doMCMC <- function(timePoints, data, auxVars, options) {
         tuning$acceptTemp[chain,] = tuning$acceptTemp[chain,] + sampling$accepted
         tuning$proposeTemp[chain,] = tuning$proposeTemp[chain,] + sampling$proposed
         paramsTempRec[[chain]] = rbind(paramsTempRec[[chain]],
-          parameters[chain, options$inferredParams])
+                                       parameters[chain, options$inferredParams])
 
         chainParams = parameters[chain,]
 
@@ -197,98 +198,98 @@ doMCMC <- function(timePoints, data, auxVars, options) {
       }
 
     }
-	if (!auxVars$Mismatch$Tempering){
-        gradientMismatchParameterRec <- rbind(gradientMismatchParameterRec,lambda) # Record all lambda values
-	}
+    if (!auxVars$Mismatch$Tempering){
+      gradientMismatchParameterRec <- rbind(gradientMismatchParameterRec,lambda) # Record all lambda values
+    }
 
     # Exchange Chains
     if(T) {
-    for(j in 1:chainNum) {
-      chain1 = resample(1:(chainNum-1), 1)
-      chain2 = chain1 + 1
+      for(j in 1:chainNum) {
+        chain1 = resample(1:(chainNum-1), 1)
+        chain2 = chain1 + 1
 
-      if(chain2 == chainNum) lastMove = 'exchange'
-      exchange = exchangeChains(chain1, chain2, parameters, gpFit, x, lambda,
-                                timePoints, auxVars, temperatures,
-                                lLchains)
-                                #lLchains+apply(dataLLchains, 1, sum))
+        if(chain2 == chainNum) lastMove = 'exchange'
+        exchange = exchangeChains(chain1, chain2, parameters, gpFit, x, lambda,
+                                  timePoints, auxVars, temperatures,
+                                  lLchains)
+        #lLchains+apply(dataLLchains, 1, sum))
 
-      if(exchange$accepted) {
-        params.temp = parameters[chain1,]
-        x.temp = x[[chain1]]
-        sigma.temp = sigma[chain1,]
-        lL.temp = lLchains[chain1]
-        data.ll.temp = dataLLchains[chain1,]
-        gpFit.temp = gpFit[[chain1]]
-        lambda.temp = lambda[chain1,]
+        if(exchange$accepted) {
+          params.temp = parameters[chain1,]
+          x.temp = x[[chain1]]
+          sigma.temp = sigma[chain1,]
+          lL.temp = lLchains[chain1]
+          data.ll.temp = dataLLchains[chain1,]
+          gpFit.temp = gpFit[[chain1]]
+          lambda.temp = lambda[chain1,]
 
-        parameters[chain1,] = parameters[chain2,]
-        x[[chain1]] = x[[chain2]]
-        lLchains[chain1] = lLchains[chain2]
-        sigma[chain1,] = sigma[chain2,]
-        dataLLchains[chain1,] = dataLLchains[chain2,]
-        gpFit[[chain1]] = gpFit[[chain2]]
-        lambda[chain1,] = lambda[chain2,]
+          parameters[chain1,] = parameters[chain2,]
+          x[[chain1]] = x[[chain2]]
+          lLchains[chain1] = lLchains[chain2]
+          sigma[chain1,] = sigma[chain2,]
+          dataLLchains[chain1,] = dataLLchains[chain2,]
+          gpFit[[chain1]] = gpFit[[chain2]]
+          lambda[chain1,] = lambda[chain2,]
 
-        parameters[chain2,] = params.temp
-        x[[chain2]] = x.temp
-        lLchains[chain2] = lL.temp
-        sigma[chain2,] = sigma.temp
-        dataLLchains[chain2,] = data.ll.temp
-        gpFit[[chain2]] = gpFit.temp
-        lambda[chain2,] = lambda.temp
+          parameters[chain2,] = params.temp
+          x[[chain2]] = x.temp
+          lLchains[chain2] = lL.temp
+          sigma[chain2,] = sigma.temp
+          dataLLchains[chain2,] = data.ll.temp
+          gpFit[[chain2]] = gpFit.temp
+          lambda[chain2,] = lambda.temp
 
-        A.rec.temp = auxVars$A.rec[[chain1]]
-        #deriv.m.rec.temp = auxVars$deriv.m.rec[[chain1]]
-        #invK.rec.temp = auxVars$invK.rec[[chain1]]
-        K.u.rec.temp = auxVars$K.u.rec[[chain1]]
-        K.rec.temp = auxVars$K.rec[[chain1]]
-        #invNoiseA.rec.temp = auxVars$invNoiseA.rec[[chain1]]
-        noiseA.u.rec.temp = auxVars$noiseA.u.rec[[chain1]]
+          A.rec.temp = auxVars$A.rec[[chain1]]
+          #deriv.m.rec.temp = auxVars$deriv.m.rec[[chain1]]
+          #invK.rec.temp = auxVars$invK.rec[[chain1]]
+          K.u.rec.temp = auxVars$K.u.rec[[chain1]]
+          K.rec.temp = auxVars$K.rec[[chain1]]
+          #invNoiseA.rec.temp = auxVars$invNoiseA.rec[[chain1]]
+          noiseA.u.rec.temp = auxVars$noiseA.u.rec[[chain1]]
 
-        auxVars$A.rec[[chain1]] = auxVars$A.rec[[chain2]]
-        auxVars$noiseA.u.rec[[chain1]] = auxVars$noiseA.u.rec[[chain2]]
-        #auxVars$deriv.m.rec[[chain1]] = auxVars$deriv.m.rec[[chain2]]
-        #auxVars$invK.rec[[chain1]] = auxVars$invK.rec[[chain2]]
-        auxVars$K.rec[[chain1]] = auxVars$K.rec[[chain2]]
-        auxVars$K.u.rec[[chain1]] = auxVars$K.u.rec[[chain2]]
-        #auxVars$invNoiseA.rec[[chain1]] = auxVars$invNoiseA.rec[[chain2]]
+          auxVars$A.rec[[chain1]] = auxVars$A.rec[[chain2]]
+          auxVars$noiseA.u.rec[[chain1]] = auxVars$noiseA.u.rec[[chain2]]
+          #auxVars$deriv.m.rec[[chain1]] = auxVars$deriv.m.rec[[chain2]]
+          #auxVars$invK.rec[[chain1]] = auxVars$invK.rec[[chain2]]
+          auxVars$K.rec[[chain1]] = auxVars$K.rec[[chain2]]
+          auxVars$K.u.rec[[chain1]] = auxVars$K.u.rec[[chain2]]
+          #auxVars$invNoiseA.rec[[chain1]] = auxVars$invNoiseA.rec[[chain2]]
 
-        auxVars$A.rec[[chain2]] = A.rec.temp
-        auxVars$noiseA.u.rec[[chain2]] = noiseA.u.rec.temp
-        #auxVars$deriv.m.rec[[chain2]] = deriv.m.rec.temp
-        #auxVars$invK.rec[[chain2]] = invK.rec.temp
-        auxVars$K.rec[[chain2]] = K.rec.temp
-        auxVars$K.u.rec[[chain2]] = K.u.rec.temp
-        #auxVars$invNoiseA.rec[[chain2]] = invNoiseA.rec.temp
+          auxVars$A.rec[[chain2]] = A.rec.temp
+          auxVars$noiseA.u.rec[[chain2]] = noiseA.u.rec.temp
+          #auxVars$deriv.m.rec[[chain2]] = deriv.m.rec.temp
+          #auxVars$invK.rec[[chain2]] = invK.rec.temp
+          auxVars$K.rec[[chain2]] = K.rec.temp
+          auxVars$K.u.rec[[chain2]] = K.u.rec.temp
+          #auxVars$invNoiseA.rec[[chain2]] = invNoiseA.rec.temp
 
-	      swappedChains <- swappedChains + 1
+          swappedChains <- swappedChains + 1
 
-      }
+        }
 
-      tuning$proposeExchangeTemp[chain2] = tuning$proposeExchangeTemp[chain2] + 1
-      tuning$acceptExchangeTemp[chain2] = tuning$acceptExchangeTemp[chain2] +
-                                            exchange$accepted
+        tuning$proposeExchangeTemp[chain2] = tuning$proposeExchangeTemp[chain2] + 1
+        tuning$acceptExchangeTemp[chain2] = tuning$acceptExchangeTemp[chain2] +
+          exchange$accepted
 
-    }}
+      }}
 
     if(i %% saveRate == 0) {
-		if (!auxVars$Mismatch$Tempering){
-      params = list(parameters=parameters, tuning=tuning,
-              paramsRec=paramsRec, lLRec=lLRec, xRec=xRec, gpRec=gpRec, timePoints=timePoints,
-              noiseRec=noiseRec, swappedChains=swappedChains,
-		  chainNums=options$chainNum, maxIterations=options$iterations,
-		  gradientMismatchParameterRec=gradientMismatchParameterRec,
-		  lLAllChains=lLAllChains)
-		}
+      if (!auxVars$Mismatch$Tempering){
+        params = list(parameters=parameters, tuning=tuning,
+                      paramsRec=paramsRec, lLRec=lLRec, xRec=xRec, gpRec=gpRec, timePoints=timePoints,
+                      noiseRec=noiseRec, swappedChains=swappedChains,
+                      chainNums=options$chainNum, maxIterations=options$iterations,
+                      gradientMismatchParameterRec=gradientMismatchParameterRec,
+                      lLAllChains=lLAllChains)
+      }
 
-		if (auxVars$Mismatch$Tempering){
-      params = list(parameters=parameters, tuning=tuning,
-              paramsRec=paramsRec, lLRec=lLRec, xRec=xRec, gpRec=gpRec, timePoints=timePoints,
-              noiseRec=noiseRec, swappedChains=swappedChains,
-		  chainNums=options$chainNum, maxIterations=options$iterations,
-		  lLAllChains=lLAllChains)
-		}
+      if (auxVars$Mismatch$Tempering){
+        params = list(parameters=parameters, tuning=tuning,
+                      paramsRec=paramsRec, lLRec=lLRec, xRec=xRec, gpRec=gpRec, timePoints=timePoints,
+                      noiseRec=noiseRec, swappedChains=swappedChains,
+                      chainNums=options$chainNum, maxIterations=options$iterations,
+                      lLAllChains=lLAllChains)
+      }
 
       save(params, file=options$saveFile)
     }
@@ -303,45 +304,45 @@ doMCMC <- function(timePoints, data, auxVars, options) {
                                  gpFit[[chainNum]][1:dim(gpRec[[species]])[2],species])
       }
 
-	### Record Log Likelihood and Log Likelihood for all temperature chains
-  lLRec = rbind(lLRec, lLchains[chainNum] + sum(dataLLchains[chainNum,]))
+      ### Record Log Likelihood and Log Likelihood for all temperature chains
+      lLRec = rbind(lLRec, lLchains[chainNum] + sum(dataLLchains[chainNum,]))
 
 
-  # Vectorized version of what was previously a loop
-  # Also fixed bug where variable i was used to index both chains and
-  # iterations
-  lLAllStore = c(lLchains + rowSums(dataLLchains))
+      # Vectorized version of what was previously a loop
+      # Also fixed bug where variable i was used to index both chains and
+      # iterations
+      lLAllStore = c(lLchains + rowSums(dataLLchains))
 
-  lLAllChains <- rbind(lLAllChains,lLAllStore)
+      lLAllChains <- rbind(lLAllChains,lLAllStore)
 
-  if(options$showPlot) {
-    if(length(auxVars$speciesList) <= 6)
-      par(mfrow=c(1+ceiling(length(auxVars$speciesList)/2),2))
-    else par(mfrow=c(1,2))
+      if(options$showPlot) {
+        if(length(auxVars$speciesList) <= 6)
+          par(mfrow=c(1+ceiling(length(auxVars$speciesList)/2),2))
+        else par(mfrow=c(1,2))
 
-    plot(lLRec, main=paste('Iterations:', i))
-    boxplot(paramsRec[,options$inferredParams])
+        plot(lLRec, main=paste('Iterations:', i))
+        boxplot(paramsRec[,options$inferredParams])
 
-    if(length(auxVars$speciesList) <= 6) {
-      for(species in auxVars$speciesList) {
-        # Ensure plotting is correct for explicit solution
-        if(options$explicit) {
-          offset = auxVars$constant[,species]
-        } else {
-          offset = 0
+        if(length(auxVars$speciesList) <= 6) {
+          for(species in auxVars$speciesList) {
+            # Ensure plotting is correct for explicit solution
+            if(options$explicit) {
+              offset = auxVars$constant[,species]
+            } else {
+              offset = 0
+            }
+
+            y.max = max(c(x[[chainNum]][,species]-offset, y[,species]))
+            y.min = min(c(x[[chainNum]][,species]-offset, y[,species]))
+            plot(timePoints, x[[chainNum]][,species]-offset, ylim=c(y.min,y.max))
+            points(timePoints, y[,species], pch=2)
+            text(timePoints[1], 0.05,
+                 paste(round(gpFit[[chainNum]][,species], digits=2), collapse=' '), adj=c(0,0))
+          }
         }
 
-        y.max = max(c(x[[chainNum]][,species]-offset, y[,species]))
-        y.min = min(c(x[[chainNum]][,species]-offset, y[,species]))
-        plot(timePoints, x[[chainNum]][,species]-offset, ylim=c(y.min,y.max))
-        points(timePoints, y[,species], pch=2)
-        text(timePoints[1], 0.05,
-             paste(round(gpFit[[chainNum]][,species], digits=2), collapse=' '), adj=c(0,0))
+        Sys.sleep(0.005)
       }
-    }
-
-    Sys.sleep(0.005)
-  }
 
     }
 
@@ -381,22 +382,22 @@ doMCMC <- function(timePoints, data, auxVars, options) {
 
   }
 
-		if (!auxVars$Mismatch$Tempering){
-  return(list(parameters=parameters, tuning=tuning,
-              paramsRec=paramsRec, lLRec=lLRec, xRec=xRec, gpRec=gpRec, timePoints=timePoints,
-              noiseRec=noiseRec, swappedChains=swappedChains,
-		  chainNums=options$chainNum, maxIterations=options$iterations,
-		  gradientMismatchParameterRec=gradientMismatchParameterRec,
-		  lLAllChains=lLAllChains))
-		}
+  if (!auxVars$Mismatch$Tempering){
+    return(list(parameters=parameters, tuning=tuning,
+                paramsRec=paramsRec, lLRec=lLRec, xRec=xRec, gpRec=gpRec, timePoints=timePoints,
+                noiseRec=noiseRec, swappedChains=swappedChains,
+                chainNums=options$chainNum, maxIterations=options$iterations,
+                gradientMismatchParameterRec=gradientMismatchParameterRec,
+                lLAllChains=lLAllChains))
+  }
 
-		if (auxVars$Mismatch$Tempering){
-  return(list(parameters=parameters, tuning=tuning,
-              paramsRec=paramsRec, lLRec=lLRec, xRec=xRec, gpRec=gpRec, timePoints=timePoints,
-              noiseRec=noiseRec, swappedChains=swappedChains,
-		  chainNums=options$chainNum, maxIterations=options$iterations,
-		  lLAllChains=lLAllChains))
-		}
+  if (auxVars$Mismatch$Tempering){
+    return(list(parameters=parameters, tuning=tuning,
+                paramsRec=paramsRec, lLRec=lLRec, xRec=xRec, gpRec=gpRec, timePoints=timePoints,
+                noiseRec=noiseRec, swappedChains=swappedChains,
+                chainNums=options$chainNum, maxIterations=options$iterations,
+                lLAllChains=lLAllChains))
+  }
 
 }
 
@@ -419,12 +420,12 @@ sampleX <- function(parameters, chain, temperatures, gpFit, x, y, lambda, sigma,
   proposal.X = proposal$x
 
   oldLL = calculateLogLikelihood(parameters, gpFit, x, lambda,
-            timePoints, auxVars,
-  		      samplingStrategy, chain, proposal$p, proposal$invM, includeDet=T)
+                                 timePoints, auxVars,
+                                 samplingStrategy, chain, proposal$p, proposal$invM, includeDet=T)
 
   newLL = calculateLogLikelihood(parameters, gpFit, proposal.X, lambda,
-           timePoints, auxVars,
-    	     samplingStrategy, chain, proposal$p, proposal$invM, includeDet=T)
+                                 timePoints, auxVars,
+                                 samplingStrategy, chain, proposal$p, proposal$invM, includeDet=T)
 
   if(species %in% auxVars$observedSpeciesList) {
     oldPrior = sum(dnorm(y, x[,species], sigma, log=T))
@@ -435,13 +436,13 @@ sampleX <- function(parameters, chain, temperatures, gpFit, x, y, lambda, sigma,
   }
 
   ratio = exp((newPrior - oldPrior) + temperatures[chain] *
-      ((newLL$gpXPrior - oldLL$gpXPrior) +
-      (newLL$LL - oldLL$LL)))
+                ((newLL$gpXPrior - oldLL$gpXPrior) +
+                   (newLL$LL - oldLL$LL)))
 
   if(is.na(ratio)) {
     browser()
   } else if((options$allowNeg || all(proposal.X[,species] > 0)) &&
-             min(1, ratio) > runif(1)) {
+            min(1, ratio) > runif(1)) {
     sampled.X = proposal.X[,species]
     accept = 1
     auxVars = newLL$auxVars
@@ -461,7 +462,7 @@ sampleX <- function(parameters, chain, temperatures, gpFit, x, y, lambda, sigma,
 
 # Sample GP and X
 sampleGPX <- function(gpFit, sigma, x, y, lambda, parameters,
-                    timePoints, auxVars, species, proposal.width, chain, chainTemp, options) {
+                      timePoints, auxVars, species, proposal.width, chain, chainTemp, options) {
 
   # Propose new GP parameters
   proposal = proposeGP(gpFit, proposal.width, species)
@@ -471,7 +472,7 @@ sampleGPX <- function(gpFit, sigma, x, y, lambda, parameters,
   gpCovs = getGPCovs(proposal$gp[,species], auxVars)
 
   # Estimate nu
-  lower = t.default(chol(matrix(auxVars$K.rec[[chain]][,species], length(timePoints), length(timePoints))))
+  lower = t.default(matrix(auxVars$K.u.rec[[chain]][,species], length(timePoints), length(timePoints)))
   nu = solve(lower) %*% x[,species]
 
   # Check if Cholesky decomposition possible for the new parameters
@@ -479,8 +480,8 @@ sampleGPX <- function(gpFit, sigma, x, y, lambda, parameters,
   try(upper.new <- chol(gpCovs$K), silent=T)
 
   oldLL = calculateLogLikelihood(parameters, gpFit, x, lambda,
-           timePoints, auxVars,
-  		     'MCMC', chain, includeDet=T)
+                                 timePoints, auxVars,
+                                 'MCMC', chain, includeDet=T)
 
   if(species %in% auxVars$observedSpeciesList)
     x.ll = sum(dnorm(x[,species], y, sigma, log=T))
@@ -505,22 +506,21 @@ sampleGPX <- function(gpFit, sigma, x, y, lambda, parameters,
 
     auxVars$Kchanged = species
     newLL = calculateLogLikelihood(parameters, proposal$gp, x.new, lambda,
-           timePoints, auxVars,
-    	     'MCMC', chain, includeDet=T)
+                                   timePoints, auxVars,
+                                   'MCMC', chain, includeDet=T)
 
     ratio = exp(gp.prior.new - gp.prior.old + x.ll.new - x.ll +
-                chainTemp*(newLL$LL - oldLL$LL +
-                newLL$gpXPrior - oldLL$gpXPrior - 0.5*(newLL$log.det - oldLL$log.det)))
+                  chainTemp*(newLL$LL - oldLL$LL +
+                               newLL$gpXPrior - oldLL$gpXPrior - 0.5*(newLL$log.det - oldLL$log.det)))
   } else {
     # New parameters do not produce positive definite K
     ratio = 0
   }
 
   if(newLL$LL - 0.5 * newLL$log.det + newLL$gpXPrior > 1e4) browser()
-  
-  if(!is.nan(ratio) &&  min(1, ratio) > runif(1) &&
-    (options$allowNeg || all(x.new[,species] > 0))) {
 
+  if(!is.nan(ratio) &&  min(1, ratio) > runif(1) &&
+     (options$allowNeg || all(x.new[,species] > 0))) {
     sampled.gp = proposal$gp; accept = proposal$changed
     lL = newLL$LL - 0.5 * newLL$log.det + newLL$gpXPrior
     data.LL = x.ll.new
@@ -558,25 +558,25 @@ calculateLogGPPrior <- function(params, covtype) {
 
 # Sample X from Y
 sampleGP <- function(gpFit, sigma, x, y, lambda, parameters,
-                    timePoints, auxVars, species) {
+                     timePoints, auxVars, species) {
   proposal = proposeGP(gpFit[[species]])
 
   oldLL = calculateLogLikelihoodSpecies(parameters, gpFit[[species]], x, lambda,
-           timePoints, auxVars,
-  		     'MCMC', species)
+                                        timePoints, auxVars,
+                                        'MCMC', species)
 
   det.old = -0.5*(determinant(oldLL$noiseA, logarithm=T)$modulus +
-                  determinant(oldLL$K, logarithm=T)$modulus)
+                    determinant(oldLL$K, logarithm=T)$modulus)
 
   auxVars$Kchanged[species] = T
   newLL = calculateLogLikelihoodSpecies(parameters, proposal$gp, x, lambda,
-           timePoints, auxVars,
-    	     'MCMC', species)
+                                        timePoints, auxVars,
+                                        'MCMC', species)
   det.new = -0.5*(determinant(newLL$noiseA, logarithm=T)$modulus +
-                  determinant(newLL$K, logarithm=T)$modulus)
+                    determinant(newLL$K, logarithm=T)$modulus)
 
   ratio = exp((newLL$gpXPrior - oldLL$gpXPrior) +
-      (newLL$logLikelihood - oldLL$logLikelihood) + (det.new - det.old))
+                (newLL$logLikelihood - oldLL$logLikelihood) + (det.new - det.old))
 
   if(min(1, ratio) > runif(1)) {
     sampled.gp = proposal$gp
@@ -600,13 +600,13 @@ proposeGP <- function(gp.orig, proposal.width, species) {
   changed = matrix(0, length(proposal.width), 1)
 
   #for(i in 1:length(gp.new[[species]]$params)) {
-    choice = resample(1:length(gp.new[,species]), 1)
-    gp.new[choice,species] = gp.new[choice, species] +
-      rnorm(1, 0, proposal.width[choice])
+  choice = resample(1:length(gp.new[,species]), 1)
+  gp.new[choice,species] = gp.new[choice, species] +
+    rnorm(1, 0, proposal.width[choice])
 
-    gp.new[choice, species] = abs(gp.new[choice, species])
+  gp.new[choice, species] = abs(gp.new[choice, species])
 
-    changed[choice] = 1
+  changed[choice] = 1
   #}
 
   return(list(gp=gp.new, changed=changed))
@@ -622,10 +622,10 @@ proposeX <- function(x.orig, species, proposal.width, chain) {
     choice = sample(1:length(x.orig[,species]), 1)
 
     x.new[choice, species] = x.orig[choice, species] +
-                               proposal.width[chain, species]*rnorm(1)
+      proposal.width[chain, species]*rnorm(1)
 
     if(abs(x.new[choice, species]) > 100) {
-       x.new[choice,species] = x.orig[choice, species]
+      x.new[choice,species] = x.orig[choice, species]
     }
 
     changed[choice] = 1
@@ -708,8 +708,8 @@ sampleParams <- function(oldParams, gpFit, data, y, lambda, sigma, timePoints, t
     oldLL = calculateLogLikelihoodExplicit(oldParams, y, timePoints, sigma, auxVars)
   } else {
     oldLL = calculateLogLikelihood(oldParams, gpFit, data, lambda, timePoints, auxVars,
-			     samplingStrategy, chain,
-			     proposal$old.p, includeDet=T)
+                                   samplingStrategy, chain,
+                                   proposal$old.p, includeDet=T)
   }
 
   x = oldLL$x
@@ -721,7 +721,7 @@ sampleParams <- function(oldParams, gpFit, data, y, lambda, sigma, timePoints, t
 
   # Check if proposal makes sense
   if(all(proposal$params >= 0)) {
-  #if(all(proposal$params > 0.0001)){ #&& all(proposal$params < 10)) {
+    #if(all(proposal$params > 0.0001)){ #&& all(proposal$params < 10)) {
     # Log Likelihood of new parameters
     newPrior = calculateLogParamPrior(proposal$params[options$inferredParams],auxVars)
     error = FALSE
@@ -730,11 +730,11 @@ sampleParams <- function(oldParams, gpFit, data, y, lambda, sigma, timePoints, t
       error = newLL$error
     } else {
       newLL = calculateLogLikelihood(proposal$params, gpFit, data, lambda, timePoints,
-                                 auxVars, samplingStrategy, chain, proposal$p)
+                                     auxVars, samplingStrategy, chain, proposal$p)
     }
 
     ratio = (newPrior - oldPrior) + temperature * (newLL$LL - oldLL$LL) +
-            (proposal$oldProb - proposal$newProb)
+      (proposal$oldProb - proposal$newProb)
 
 
     if(!error && !is.nan(ratio) && min(ratio, 0) > log(runif(1))) {
@@ -762,7 +762,7 @@ calculateLogLikelihoodExplicit <- function(params, y, time, sigma, auxVars) {
 
   for(species in auxVars$observedSpeciesList) {
     explicit.ll = explicit.ll + sum(dnorm(param.solution[,species]-auxVars$constant[,species], y[,species],
-                                      sigma[species], log=T))
+                                          sigma[species], log=T))
   }
 
   return(list(LL=explicit.ll, auxVars=auxVars, gpXPrior=0, x=param.solution, log.det=0,
@@ -777,21 +777,23 @@ calculateLogLikelihood <- function(params, gpFit, X, lambda, timePoints, auxVars
   # Calculate Log Likelihood for each species
   for(species in auxVars$speciesList) {
     LL_temp = calculateLogLikelihoodSpecies(params, gpFit[,species],
-           X, lambda[species], timePoints, auxVars, samplingStrategy, species, chain, p)
+                                            X, lambda[species], timePoints, auxVars, samplingStrategy, species, chain, p)
     LL = LL + LL_temp$logLikelihood
 
     # Update recorded values
     #auxVars$invK.rec[[chain]][, species] = c(LL_temp$invK)
     auxVars$K.u.rec[[chain]][, species] = c(LL_temp$K.u)
-    auxVars$K.rec[[chain]][, species] = c(LL_temp$K)
+    auxVars$Kstar.rec[[chain]][, species] = c(LL_temp$Kstar)
     auxVars$noiseA.u.rec[[chain]][, species] = c(LL_temp$noiseA.u)
     auxVars$A.rec[[chain]][, species] = c(LL_temp$A)
     #auxVars$deriv.m.rec[[chain]][, species] = c(LL_temp$deriv.m)
     #auxVars$invNoiseA[[chain]][, species] = c(LL_temp$invNoiseA)
 
     if(includeDet) {
-      log.det = log.det + determinant.matrix(LL_temp$noiseA, logarithm=T)$modulus +
-                determinant.matrix(LL_temp$K, logarithm=T)$modulus
+      # Note, determinant is sum of squared diagonal entries of U or
+      # L matrix in Cholesky decomposition
+      log.det = log.det + log(sum(diag(LL_temp$noiseA.u)^2)) +
+        log(sum(diag(LL_temp$K.u)^2))
     }
 
     gpXPrior = gpXPrior + LL_temp$gpXPrior
@@ -826,47 +828,47 @@ calculateLogLikelihoodSpecies <- function(params, gpFit, X, lambda, timePoints, 
 
 # Sample Observation Noise Variance
 sampleNoise <- function(sigma, x, y, options, chain, species, temperatures,auxVars) {
-	if(auxVars$sigmaInfer==TRUE){
-  sigma.max = sqrt(var(y))
+  if(auxVars$sigmaInfer==TRUE){
+    sigma.max = sqrt(var(y))
 
-  interval = options$proposalNoiseTuning[chain, species]
+    interval = options$proposalNoiseTuning[chain, species]
 
-  if(interval > sigma.max)
-    interval = sigma.max - 0.001
+    if(interval > sigma.max)
+      interval = sigma.max - 0.001
 
-  sigma.proposal = uniformProposal(sigma,
-                     interval, sigma.max)
+    sigma.proposal = uniformProposal(sigma,
+                                     interval, sigma.max)
 
-  old.prior = dgamma(sigma, shape=0.5, scale=1, log=T)
-  new.prior = dgamma(sigma.proposal, shape=0.5, scale=1, log=T)
+    old.prior = dgamma(sigma, shape=0.5, scale=1, log=T)
+    new.prior = dgamma(sigma.proposal, shape=0.5, scale=1, log=T)
 
-  old.ll = sum(dnorm(y, x, sigma, log=T))
-  new.ll = sum(dnorm(y, x, sigma.proposal, log=T))
+    old.ll = sum(dnorm(y, x, sigma, log=T))
+    new.ll = sum(dnorm(y, x, sigma.proposal, log=T))
 
-  if(is.nan(old.ll) || is.nan(new.ll))
-    browser()
+    if(is.nan(old.ll) || is.nan(new.ll))
+      browser()
 
-  #ratio = exp(temperatures[chain] * (new.ll - old.ll) + new.prior - old.prior)
-  ratio = exp((new.ll - old.ll) + new.prior - old.prior)
+    #ratio = exp(temperatures[chain] * (new.ll - old.ll) + new.prior - old.prior)
+    ratio = exp((new.ll - old.ll) + new.prior - old.prior)
 
-  if(min(1,ratio) > runif(1)) {
-    sampled.sigma = sigma.proposal
-    accept=1
-    data.LL = new.ll
-  } else {
-    sampled.sigma = sigma
-    accept = 0
-    data.LL = old.ll
+    if(min(1,ratio) > runif(1)) {
+      sampled.sigma = sigma.proposal
+      accept=1
+      data.LL = new.ll
+    } else {
+      sampled.sigma = sigma
+      accept = 0
+      data.LL = old.ll
+    }
+
+    return(list(sigma=sampled.sigma, accept=accept, data.LL=data.LL))}
+
+  if(auxVars$sigmaInfer==FALSE){
+    sigmaT <- auxVars$sigmaTrue
+    accept <- 1
+    data.LL <- sum(dnorm(y, x, sigmaT, log=T))
+    return(list(sigma=sigmaT, accept=accept, data.LL=data.LL))
   }
-
-  return(list(sigma=sampled.sigma, accept=accept, data.LL=data.LL))}
-
-	if(auxVars$sigmaInfer==FALSE){
-	sigmaT <- auxVars$sigmaTrue
-	accept <- 1
-	data.LL <- sum(dnorm(y, x, sigmaT, log=T))
-	return(list(sigma=sigmaT, accept=accept, data.LL=data.LL))
-	}
 }
 
 
