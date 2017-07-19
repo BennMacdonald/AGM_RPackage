@@ -1,6 +1,6 @@
 ---
 title: "ODE parameter inference with deGradInfer"
-author: "Benn MacDonald and Frank Dondelinger"
+author: "Benn Macdonald and Frank Dondelinger"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 bibliography: bibliography.bib
@@ -25,32 +25,32 @@ In the next section, we will briefly sketch the underlying statistical model and
 
 # Model and Inference
 
-The package implements the adaptive gradient matching approach of [@dondelinger2013], with the option of using parallel tempering to infer the mismatch parameter as described in [@macdonald2017]. The advantage of gradient matching as a parameter inference technique is that it does not require us to numerically solve the ODE system at each step, a potentially costly operation for large systems. 
+The package implements the adaptive gradient matching approach of [@dondelinger2013], with the option of using parallel tempering to fix the mismatch parameter in place, as described in [@macdonald2017]. The advantage of gradient matching as a parameter inference technique is that it does not require us to numerically solve the ODE system at each step, a potentially costly operation for large systems. 
 
 Briefly, assuming Gaussian noise on the observed variable $\mathbf{y}_k$ such that $P(y_k(t)) = \mathcal{N}(y_k(t)|x_k(t),\sigma_k)$, we can model the latent variables $\mathbf{x}_k$ using a Gaussian process prior:
 
-$$P(\mathbf{x}_k|\Psi_k) = \mathcal{N}(\mathbf{x}_k|\mathbf{0}, \mathbf{C}_{\Psi_k}) $$
-where $\mathbf{C}_{\Psi_k}$ denotes a positive definite matrix of covariance functions with hyperparameters $\Psi_k$. We can use the properties of Gaussian processes to obtain a model for the gradient $\mathbf{\dot{x}}_k$, which we combine with the ODE system model via a product of experts:
+$$P(\mathbf{x}_k|\Psi_k) = \mathcal{N}(\mathbf{x}_k|\mathbf{0}, \mathbf{C}_{\Psi_k}),$$
+where $\mathbf{C}_{\Psi_k}$ denotes a positive definite matrix of covariance functions with hyperparameters $\Psi_k$. We can use the properties of Gaussian processes to obtain a model (in closed form) for the gradient $\mathbf{\dot{x}}_k$, which we combine with the ODE system model via a product of experts:
 
-$$P(\mathbf{\dot{x}}_k|\mathbf{X},\Theta,\Psi,\gamma_k) \propto P(\mathbf{\dot{x}}_k|\mathbf{x}_k,\Psi)P(\mathbf{\dot{x}}_k|\mathbf{X},\Theta,\gamma_k)$$
-where $\mathbf{X}$ is a $T \times K$ matrix where column $k$ corresponds to $\mathbf{x}_k$. Note that this approach essentially provides two models for $\mathbf{\dot{x}}_k$; a Gaussian process model which is based on a smoothing of the observed variables, and the ODE model, with parameters $\Theta$. The hyperparameters $\gamma_k$ allow for some Gaussian noise on the ODE estimates of the gradients, and thus effectively control the allowable mismatch between the ODE and Gaussian process estimates.
+$$P(\mathbf{\dot{x}}_k|\mathbf{X},\Theta,\Psi,\gamma_k) \propto P(\mathbf{\dot{x}}_k|\mathbf{x}_k,\Psi)P(\mathbf{\dot{x}}_k|\mathbf{X},\Theta,\gamma_k),$$
+where $\mathbf{X}$ is a $T \times K$ matrix where column $k$ corresponds to $\mathbf{x}_k$. Note that this approach essentially provides two models for $\mathbf{\dot{x}}_k$; a Gaussian process model which is based on a smoothing of the observed variables, and the ODE model, with parameters $\Theta$. The parameters $\gamma_k$ allow for some Gaussian noise on the ODE estimates of the gradients, and thus effectively control the allowable mismatch between the ODE and Gaussian process estimates.
 
-We can integrate out the latent variables $\mathbf{\dot{X}}$ and do inference over the joint model $P(\mathbf{Y}, \mathbf{X}, mathbf{\Theta}, \mathbf{Psi}, mathbf{\sigma}$ [see @dondelinger2013 for details].
+We can integrate out the latent variables $\mathbf{\dot{X}}$ and do inference over the joint model $P(\mathbf{Y}, \mathbf{X}, mathbf{\Theta}, \mathbf{Psi}, mathbf{\sigma})$ [see @dondelinger2013 for details].
 
-Parallel tempering can be used to infer the mismatch parameters...
+Rather than inferring the gradient mismatch parameters, parallel tempering can instead be used to fix them in place. If the ODE model properly (or adequately) describes the process then ideally we would want no mismatch between the predctions from the ODEs and the interpolant, when sampling from the posterior. However, bringing in this knowledge by forcing there to be no mismatch between the gradients at the beginning of the MCMC run can cause the algorithm to converge to suboptimal states. Instead, by running a number of parallel chains, setting large values of the gradient mismatch parameter for chains closer to the prior, setting small values for chains closer to the posterior, this prior knowledge can be brought in, whilst still allowing the algorithm enough flexibility to explore.
 
-Inference is done using population MCMC, which can deal with the multimodal posterior landscape, and will give a posterior distribution for the parameters, in addition to the posterior mean estimates.
+Inference is done using population MCMC, which can deal with multimodal posterior landscapes, and will give a posterior distribution for the parameters, in addition to the posterior mean estimates.
 
 # Specifying ODE systems as R functions
 
 We will use the example of a simple Lotka-Volterra prey-predator system. This consists of two variables representing a predator species and a prey species. The system is governed by four parameters and takes the following form:
 
 $$
-\frac{dx}{dt} = \alpha x - \beta x y\\
-\frac{dy}{dt} = \delta x y - \gamma y
+\frac{dx_1}{dt} =  x_1 (\alpha - \beta x_2) \hspace{0.1cm}\mathrm{Prey}\\
+\frac{dx_2}{dt} = -x_2 (\psi x_2 - \delta x_1) \hspace{0.1cm}\mathrm{Predators}
 $$
 
-where $x$ represents the number of prey and $y$ represents the number of predators.
+where $x_1$ represents the number of prey and $x_2$ represents the number of predators.
 
 In order to use `deGradInfer`, we need to represent this system as an R function. Our implementation is inspired by the package `deSolve` for numerically solving ODE systems represented as R functions. In particular, we require the function to be of the form `func <- function(t,X,params,...)` where `t` is a $T$-dimensional vector of time points, `X` is a $T \times K$ matrix containing the values for the $K$ variables in the system, `params` is a $p$-dimensional vector of parameters, and `...` optionally denotes other parameters that may be passed to the function. The output should be a $T \times K$ matrix of the gradients $\frac{dx_k}{dt}$ for all variables $k$. For the Lotka-Volterra system, we can define an R function as:
 
@@ -140,13 +140,14 @@ VG_func <- function(t, X, params) {
   MM <- ((params[5]*X[,5])/(params[6]+X[,5]))
   
   dxdt <- cbind( - params[1]*X[,1] - params[2]*X[,1]*X[,3] + 
-                   params[3]*X[,4],
-                 params[1]*X[,1],
+                   params[3]*X[,4], # S
+                 params[1]*X[,1], # dS
                  - params[2]*X[,1]*X[,3] + params[3]*X[,4] + 
-                   MM,
+                   MM, # R
                  params[2]*X[,1]*X[,3] - params[3]*X[,4] - 
-                   params[4]*X[,4],
-                 params[4]*X[,4] - MM)
+                   params[4]*X[,4], # RS
+                 params[4]*X[,4] - MM # Rpp
+		   )
   
   return(dxdt)
 }
