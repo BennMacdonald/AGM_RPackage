@@ -4,7 +4,7 @@
 \alias{agm}
 \title{Title}
 \usage{
-agm(data, time, ode.system, numberOfParameters, noiseFixed,
+agm(data, time, ode.system, numberOfParameters, noise.sd = 0.001,
   observedVariables = 1:ncol(data), temperMismatchParameter = FALSE,
   initialisedParameters = NULL, chainNum = 20, gpCovType = "rbf",
   saveFile = NULL, defaultTemperingScheme = NULL, maxIterations = 3e+05,
@@ -21,7 +21,7 @@ agm(data, time, ode.system, numberOfParameters, noiseFixed,
 
 \item{numberOfParameters}{A scalar specifying the number of parameters in the ODE system. If explicitly solving the ODE system, the number of parameters will (usually) be equal to the number of ODE parameters plus the number of initial conditions of the system.}
 
-\item{noiseFixed}{A scalar specifiying the value at which to fix the standard deviation of the observational noise.}
+\item{noise.sd}{A scalar specifiying the value at which to fix the standard deviation of the observational noise. Default \code{noise.sd=1e-3}.}
 
 \item{observedVariables}{A vector specifying which variables are observed in the system. Default is \code{observedVariables=1:ncol(data)} (fully observed system).}
 
@@ -76,7 +76,7 @@ LV_func = function(t, X, params) {
 	return(dxdt)
 }
 
-agm(data=dataTest,time=timeTest,noiseFixed=0.31,ode.system=LV_func,
+agm(data=dataTest,time=timeTest,noise.sd=0.31,ode.system=LV_func,
     numberOfParameters=4,temperMismatchParameter=TRUE,
     chainNum=5, maxIterations=200,originalSignalOnlyPositive=TRUE,
     defaultPrior="Gamma",defaultTemperingScheme="LB10")

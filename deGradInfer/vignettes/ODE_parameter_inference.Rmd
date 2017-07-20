@@ -10,11 +10,11 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{echo=FALSE}
+```{r echo=FALSE}
 set.seed(10)
 ```
 
-The package `deGradInfer` is an R package for efficient parameter inference in systems of ordinary differential equations (ODEs), using adaptive gradient matching via Gaussian processes. This implementation follows from the work in [@calderhead2007; @dondelinger2013; @macdonald2017], although the software has been extended with several crucial features to make it robust and useful for practical applications. Features include:
+The package `deGradInfer` is an R package for efficient parameter inference in systems of ordinary differential equations (ODEs), using adaptive gradient matching via Gaussian processes. This implementation follows from the work in [@calderhead2009; @dondelinger2013; @macdonald2017], although the software has been extended with several crucial features to make it robust and useful for practical applications. Features include:
 
 * Specifying custom ODE systems as R functions.
 * Dealing with missing/unobserved variables.
@@ -25,19 +25,19 @@ In the next section, we will briefly sketch the underlying statistical model and
 
 # Model and Inference
 
-The package implements the adaptive gradient matching approach of [@dondelinger2013], with the option of using parallel tempering to fix the mismatch parameter in place, as described in [@macdonald2017]. The advantage of gradient matching as a parameter inference technique is that it does not require us to numerically solve the ODE system at each step, a potentially costly operation for large systems. 
+The package implements the adaptive gradient matching approach of @dondelinger2013, with the option of using parallel tempering to fix the mismatch parameter in place, as described in @macdonald2017. The advantage of gradient matching as a parameter inference technique is that it does not require us to numerically solve the ODE system at each step, a potentially costly operation for large systems. 
 
 Briefly, assuming Gaussian noise on the observed variable $\mathbf{y}_k$ such that $P(y_k(t)) = \mathcal{N}(y_k(t)|x_k(t),\sigma_k)$, we can model the latent variables $\mathbf{x}_k$ using a Gaussian process prior:
 
 $$P(\mathbf{x}_k|\Psi_k) = \mathcal{N}(\mathbf{x}_k|\mathbf{0}, \mathbf{C}_{\Psi_k}),$$
 where $\mathbf{C}_{\Psi_k}$ denotes a positive definite matrix of covariance functions with hyperparameters $\Psi_k$. We can use the properties of Gaussian processes to obtain a model (in closed form) for the gradient $\mathbf{\dot{x}}_k$, which we combine with the ODE system model via a product of experts:
 
-$$P(\mathbf{\dot{x}}_k|\mathbf{X},\Theta,\Psi,\gamma_k) \propto P(\mathbf{\dot{x}}_k|\mathbf{x}_k,\Psi)P(\mathbf{\dot{x}}_k|\mathbf{X},\Theta,\gamma_k),$$
+$$P(\mathbf{\dot{x}}_k|\mathbf{X},\Theta,\Psi_k,\gamma_k) \propto P(\mathbf{\dot{x}}_k|\mathbf{x}_k,\Psi_k)P(\mathbf{\dot{x}}_k|\mathbf{X},\Theta,\gamma_k),$$
 where $\mathbf{X}$ is a $T \times K$ matrix where column $k$ corresponds to $\mathbf{x}_k$. Note that this approach essentially provides two models for $\mathbf{\dot{x}}_k$; a Gaussian process model which is based on a smoothing of the observed variables, and the ODE model, with parameters $\Theta$. The parameters $\gamma_k$ allow for some Gaussian noise on the ODE estimates of the gradients, and thus effectively control the allowable mismatch between the ODE and Gaussian process estimates.
 
-We can integrate out the latent variables $\mathbf{\dot{X}}$ and do inference over the joint model $P(\mathbf{Y}, \mathbf{X}, mathbf{\Theta}, \mathbf{Psi}, mathbf{\sigma})$ [see @dondelinger2013 for details].
+We can integrate out the latent variables $\mathbf{\dot{X}}$ and do inference over the joint model $P(\mathbf{Y}, \mathbf{X}, \mathbf{\Theta}, \mathbf{\Psi}, \mathbf{\sigma})$ [see @dondelinger2013 for details].
 
-Rather than inferring the gradient mismatch parameters, parallel tempering can instead be used to fix them in place. If the ODE model properly (or adequately) describes the process then ideally we would want no mismatch between the predctions from the ODEs and the interpolant, when sampling from the posterior. However, bringing in this knowledge by forcing there to be no mismatch between the gradients at the beginning of the MCMC run can cause the algorithm to converge to suboptimal states. Instead, by running a number of parallel chains, setting large values of the gradient mismatch parameter for chains closer to the prior, setting small values for chains closer to the posterior, this prior knowledge can be brought in, whilst still allowing the algorithm enough flexibility to explore.
+Rather than inferring the gradient mismatch parameters, we can use parallel tempering to set them. If the ODE model properly (or adequately) describes the process then ideally we would want no mismatch between the predctions from the ODEs and the interpolant, when sampling from the posterior. However, bringing in this knowledge by forcing there to be no mismatch between the gradients at the beginning of the MCMC run can cause the algorithm to converge to suboptimal states. Instead, by running a number of parallel chains, setting large values of the gradient mismatch parameter for chains closer to the prior and small values for chains closer to the posterior, this prior knowledge can be brought in, whilst still allowing the algorithm enough flexibility to explore.
 
 Inference is done using population MCMC, which can deal with multimodal posterior landscapes, and will give a posterior distribution for the parameters, in addition to the posterior mean estimates.
 
@@ -46,8 +46,8 @@ Inference is done using population MCMC, which can deal with multimodal posterio
 We will use the example of a simple Lotka-Volterra prey-predator system. This consists of two variables representing a predator species and a prey species. The system is governed by four parameters and takes the following form:
 
 $$
-\frac{dx_1}{dt} =  x_1 (\alpha - \beta x_2) \hspace{0.1cm}\mathrm{Prey}\\
-\frac{dx_2}{dt} = -x_2 (\psi x_2 - \delta x_1) \hspace{0.1cm}\mathrm{Predators}
+\frac{dx_1}{dt} =  x_1 (a - b x_2) \hspace{0.1cm}\mathrm{Prey}\\
+\frac{dx_2}{dt} = -x_2 (c x_2 - d x_1) \hspace{0.1cm}\mathrm{Predators}
 $$
 
 where $x_1$ represents the number of prey and $x_2$ represents the number of predators.
@@ -70,12 +70,15 @@ Note that if one wishes to use their function with `deSolve`, it needs to be com
 library('deSolve')
 
 # Wrapper function
-deSolve_LV_func = function(t,y,params) list(LV_func(t,matrix(y,1,length(y)),params))
+deSolve_LV_func = function(t,y,params) {
+  list(LV_func(t,matrix(y,1,length(y)),params))
+}
 
 # Generate some data
 test.times = seq(0,2,0.1)
 test.data = ode(c(5,3), test.times, deSolve_LV_func, c(2,1,4,1))
-test.data = test.data[,2:3] + rnorm(dim(test.data)[1]*2,0,0.1) # add some observation noise
+test.data = test.data[,2:3] +
+  rnorm(dim(test.data)[1]*2,0,0.1) # add some observation noise
 ```
 
 
@@ -86,11 +89,12 @@ The main interface to the package is provided via the `agm` function. The user n
 Here we only run the model for 1000 iterations, which is not sufficient to reach convergence, but is good enough for demonstration purposes:
 
 ```{r} 
-#library('deGradInfer')
-set.seed(1)
-agm(test.data,test.times,LV_func,4,noise.sd=0.1,maxIterations=1000,temperMismatchParameter=TRUE,
-     chainNum=5, originalSignalOnlyPositive=TRUE,
-     defaultPrior="Gamma",defaultTemperingScheme="LB10")
+library('deGradInfer')
+
+agm(test.data,test.times,LV_func,4,noise.sd=0.1,
+    maxIterations=1000,temperMismatchParameter=FALSE,
+    chainNum=5, originalSignalOnlyPositive=TRUE,
+    defaultPrior="Gamma",defaultTemperingScheme="LB10")
 ```
 
 By default, the results are saved to disk in an Rdata file `AGM_Results.Rdata`. We can load the results to inspect the posterior distribution of the parameter values. 
@@ -102,23 +106,30 @@ load('AGM_Results.Rdata')
 plotting.frame = data.frame(Param.Values=c(paramsMCMC$paramsRec), 
                             Param.Num=rep(1:4, each=dim(paramsMCMC$paramsRec)[1]))
 
-ggplot(plotting.frame, aes(x=Param.Samples)) +
-  facet_wrap(~Param.Num) + 
-  geom_histogram()
+ggplot(plotting.frame, aes(x=Param.Values, y=..scaled..)) +
+  facet_wrap(~paste('Parameter', Param.Num), scales = 'free') + 
+  geom_density() +
+  labs(y='Scaled Density', x='Parameter Value') + 
+  xlim(c(0,5))
 ```
 
 We can also inspect the evolution of the log likelihood:
 
 ```{r} 
-qplot(x=1:length(paramsMCMC$lLRec), y=paramsMCMC$lLRec) + ylab('Log-likelihood')
+qplot(x=seq(100,1000,100), y=paramsMCMC$lLRec,geom = 'line') + 
+  labs(x='Iterations', y='Log-likelihood')
+  
+
 ```
 
 ## Using tempering to infer the mismatch parameter
 
-The mismatch between the Gaussian process model and the ODE model of the system is captured by the parameter $\lambda$. [@macdonald2017] introduced a tempering scheme to improve inference of this parameter. This scheme can be used in our model by setting the `temperMismatchParameter` option.
+The mismatch between the Gaussian process model and the ODE model of the system is captured by the parameter $\lambda$. @macdonald2017 introduced a tempering scheme to replace naive inference of this parameter. This scheme can be used in our model by setting the `temperMismatchParameter` option.
 
 ```{r,eval=FALSE} 
-agm(test.data,test.times,LV_func,4,noise.sd=0.1,temperMismatchParameter=TRUE)
+agm(test.data,test.times,LV_func,4,noise.sd=0.1,temperMismatchParameter=TRUE,
+    originalSignalOnlyPositive=TRUE,
+    defaultPrior="Gamma", defaultTemperingScheme="LB10")
 ```
 
 ## Parameter inference by explicitly solving the ODE system
