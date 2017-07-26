@@ -208,6 +208,12 @@ agm <- function(data,time,ode.system,numberOfParameters,noise.sd=1e-3, observedV
 
   if(!is.null(defaultPrior)){
     auxVars$defaultLogParamPrior <- defaultPrior
+  }else{
+    auxVars$defaultLogParamPrior <- NULL
+	if(!(exists("userLogPrior")&&is.function(userLogPrior)))
+	{
+		stop(warning="You must create userLogPrior in workspace or use defaultPrior option in agm()")
+	}
   }
 
   ### Specify the options for the population MCMC algorithm to operate. The
