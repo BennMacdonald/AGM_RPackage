@@ -8,7 +8,7 @@ context("Likelihood Comparison")
 
 # Four saved test cases
 for(test.case.i in 1:4) {
-  load(paste0('../../data/testing_state_LV_', test.case.i, '.rda'))
+  load(paste0('testing_state_LV_', test.case.i, '.rda'))
   
   auxVars$Kchanged = species
   
