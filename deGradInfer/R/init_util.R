@@ -373,54 +373,6 @@ likelihoodUtil <- function(params, X, lambda, timePoints, auxVars, gpFit, specie
               K.u=K.u, A=A, Kstar=Kstar, noiseA=noiseA))
 }
 
-
-# Old method: Calculate inverse directly
-# Calculate summary statistics for likelihood
-likelihoodUtil_old <- function(params, X, lambda, timePoints, auxVars, gpFit, species, chain) {
-  odeNoiseParam = lambda
-  error = FALSE
-  # Gradient from the ODE system
-  f = getODEGradient(X, timePoints, params, auxVars, species)
-  f = as.matrix(f)
-
-  # If GP parameters have changed, recalculate K and derivatives, and A
-  if(auxVars$Kchanged == species) {
-    gpCovs = getGPCovs(gpFit, auxVars)
-    invK = NULL
-
-    # Try inverse of K
-    try(invK <- solve.default(gpCovs$K), silent=T)
-
-    #if(any(eigen(invK, symmetric = TRUE)$values < 0)) browser()
-
-    if(is.null(invK)) {
-      invK = auxVars$I
-      error = T
-    }
-
-    tempA = gpCovs$Kstar %*% invK %*% gpCovs$starK
-    tempA = (tempA + t(tempA)) / 2
-
-    A = gpCovs$starKstar - tempA
-    deriv.m = gpCovs$Kstar %*% invK
-    K = gpCovs$K
-  } else {
-    invK = matrix(auxVars$invK.rec[[chain]][, species], length(f), length(f))
-    deriv.m = matrix(auxVars$deriv.m.rec[[chain]][, species], length(f), length(f))
-    A = matrix(auxVars$A.rec[[chain]][, species], length(f), length(f))
-    K = matrix(auxVars$K.rec[[chain]][, species], length(f), length(f))
-
-  }
-
-  m = deriv.m %*% X[,species,drop=F]
-
-  I = auxVars$I
-
-  noiseA = A + (odeNoiseParam+1e-3)*I
-  return(list(m=m, noiseA=noiseA, gradDiff = f-m,
-              error=error, invK=invK, deriv.m=deriv.m, A=A, K=K))
-}
-
 # Precalculate some matrices for GP covariance calculations
 covUtilPreCalc <- function(input) {
   inputm = matrix(rep(input, length(input)), length(input), length(input))
