@@ -41,6 +41,17 @@ Rather than inferring the gradient mismatch parameters, we can use parallel temp
 
 Inference is done using population MCMC, which can deal with multimodal posterior landscapes, and will give a posterior distribution for the parameters, in addition to the posterior mean estimates.
 
+# Correct format for a user specified prior
+
+The package supports priors defined by the user. The user should write their function to return a vector of log densities, for a given parameter set. For example
+
+```{r}
+testLogPrior <- function(params)
+{
+	return(c(dunif(params[1],0,10,log=TRUE),dgamma(params[2:3],shape=4,scale=0.5,log=TRUE),dchisq(params[4],2,log=TRUE)))
+}
+```
+
 # Specifying ODE systems as R functions
 
 We will use the example of a simple Lotka-Volterra prey-predator system. This consists of two variables representing a predator species and a prey species. The system is governed by four parameters and takes the following form:
