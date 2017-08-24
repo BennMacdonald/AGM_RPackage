@@ -19,18 +19,14 @@ LV_func = function(t, X, params) {
   return(dxdt)
 }
 
-result.file = paste("",getwd(),"/tests_temp.Rdata",sep="")
+results = agm(data=dataTest,time=timeTest,noise.sd=0.31,ode.system=LV_func,
+              numberOfParameters=4,temperMismatchParameter=TRUE,
+              showPlot=FALSE,
+              chainNum=5, maxIterations=500,originalSignalOnlyPositive=TRUE,
+              logPrior="Gamma",defaultTemperingScheme="LB10")
 
-agm(data=dataTest,time=timeTest,noise.sd=0.31,ode.system=LV_func,
-     numberOfParameters=4,temperMismatchParameter=TRUE, saveFile=result.file,
-     showPlot=FALSE,
-     chainNum=5, maxIterations=500,originalSignalOnlyPositive=TRUE,
-     logPrior="Gamma",defaultTemperingScheme="LB10")
-
-load(result.file)
-latest = length(paramsMCMC$lLRec)
-
+latest = length(results$ll)
 
 test_that("Likelihood is improved", {
-  expect_gt(paramsMCMC$lLRec[latest], paramsMCMC$lLRec[2])
+  expect_gt(results$ll[latest], results$ll[2])
 })

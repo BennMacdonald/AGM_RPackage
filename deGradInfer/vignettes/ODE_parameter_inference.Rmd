@@ -102,20 +102,21 @@ Here we only run the model for 1000 iterations, which is not sufficient to reach
 ```{r} 
 library('deGradInfer')
 
-agm(test.data,test.times,LV_func,4,noise.sd=0.1,
-    maxIterations=1000,temperMismatchParameter=FALSE,
-    chainNum=5, originalSignalOnlyPositive=TRUE,
-    logPrior="Gamma",defaultTemperingScheme="LB10")
+agm.result = agm(test.data,test.times,LV_func,4,noise.sd=0.1,
+                 maxIterations=1000,temperMismatchParameter=FALSE,
+                 chainNum=5, originalSignalOnlyPositive=TRUE,
+                 logPrior="Gamma",defaultTemperingScheme="LB10")
+
+print(agm.result$posterior.mean)
 ```
 
-By default, the results are saved to disk in an Rdata file `AGM_Results.Rdata`. We can load the results to inspect the posterior distribution of the parameter values. 
+We can plot the posterior distribution of the inferred parameter values using the samples from the posterior.
 
 ```{r} 
 library('ggplot2')
-load('AGM_Results.Rdata')
 
-plotting.frame = data.frame(Param.Values=c(paramsMCMC$paramsRec), 
-                            Param.Num=rep(1:4, each=dim(paramsMCMC$paramsRec)[1]))
+plotting.frame = data.frame(Param.Values=c(agm.result$posterior.samples), 
+                            Param.Num=rep(1:4, each=dim(agm.result$posterior.samples)[1]))
 
 ggplot(plotting.frame, aes(x=Param.Values, y=..scaled..)) +
   facet_wrap(~paste('Parameter', Param.Num), scales = 'free') + 
@@ -127,7 +128,7 @@ ggplot(plotting.frame, aes(x=Param.Values, y=..scaled..)) +
 We can also inspect the evolution of the log likelihood:
 
 ```{r} 
-qplot(x=seq(100,1000,100), y=paramsMCMC$lLRec,geom = 'line') + 
+qplot(x=seq(100,1000,100), y=agm.result$ll, geom = 'line') + 
   labs(x='Iterations', y='Log-likelihood')
   
 
@@ -138,7 +139,7 @@ qplot(x=seq(100,1000,100), y=paramsMCMC$lLRec,geom = 'line') +
 The mismatch between the Gaussian process model and the ODE model of the system is captured by the parameter $\lambda$. @macdonald2017 introduced a tempering scheme to replace naive inference of this parameter. This scheme can be used in our model by setting the `temperMismatchParameter` option.
 
 ```{r,eval=FALSE} 
-agm(test.data,test.times,LV_func,4,noise.sd=0.1,temperMismatchParameter=TRUE,
+agm.result = agm(test.data,test.times,LV_func,4,noise.sd=0.1,temperMismatchParameter=TRUE,
     originalSignalOnlyPositive=TRUE,
     logPrior="Gamma", defaultTemperingScheme="LB10")
 ```
@@ -148,7 +149,7 @@ agm(test.data,test.times,LV_func,4,noise.sd=0.1,temperMismatchParameter=TRUE,
 For comparison purposes, we also implemented a version of the MCMC algorithm that explicitly solves the ODE system at each step (with `deSolve`), rather than using gradient matching. This can be invoked by using the `explicit` flag.
 
 ```{r,eval=FALSE} 
-agm(test.data,test.times,LV_func,6,explicit=TRUE)
+agm.result = agm(test.data,test.times,LV_func,6,explicit=TRUE)
 ```
 Note that the number of parameters has increased; this is because the initial states of the ODE at the first time point also need to be inferred when using this method. So in the Lotka-Volterra case, the number of parameters increases by 2 because there are 2 variables in the ODE system.
 
@@ -182,7 +183,7 @@ dataTest = dataTest[,2:6] + rnorm(dim(dataTest)[1]*5,0,0.01)
 
 
 # Run adaptive gradient matching
-agm(data=dataTest,time=timeTest,ode.system=VG_func, numberOfParameters=6)
+agm.result = agm(data=dataTest,time=timeTest,ode.system=VG_func, numberOfParameters=6)
 ```
 
 # Inference with unobserved variables
@@ -194,7 +195,7 @@ If not all variables are observed, we can infer the unobserved variables by usin
 dataTest[,1] = NA
 
 # Run adaptive gradient matching
-agm(data=dataTest,time=timeTest,ode.system=VG_func, observedVariables=2:5, numberOfParameters=6)
+agm.result = agm(data=dataTest,time=timeTest,ode.system=VG_func, observedVariables=2:5, numberOfParameters=6)
 ```
 
 # References

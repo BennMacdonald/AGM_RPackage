@@ -54,7 +54,7 @@ agm(data, time, ode.system, numberOfParameters, noise.sd = 0.001,
 \item{explicitNoiseInfer}{Logical: whether the standard deviation of the observational noise should be inferred when using the method that explicitly solves the ODEs. Only considered when \code{explicit=TRUE}. Default is \code{explicitNoiseInfer=TRUE}.}
 }
 \value{
-Function returns NULL, but results are saved to file.
+Function returns a list with elements \code{posterior.mean}, the mean of the parameter samples from the posterior (after burning of 1/4 of the number of samples taken), \code{posterior.sd}, the standard deviation, \code{posterior.samples}, the parameter samples, \code{ll} the log likelihood, \code{x.samples}, the samples of the latent variables, \code{gp.samples}, the samples of the GP hyperparameters, \code{noise.samples} the samples of sigma, \code{swappedChains} the number of times the chains have been swapped, \code{ll.all.chain}, the log likelihood for all chains and \code{tuning}, the inferred tuning parameters for acceptance of the MCMC moves.
 }
 \description{
 Function agm uses adaptive gradient matching to infer the parameters of a user-defined ODE system from data. For details on AGM,
@@ -79,9 +79,11 @@ LV_func = function(t, X, params) {
 	return(dxdt)
 }
 
-agm(data=dataTest,time=timeTest,noise.sd=0.31,ode.system=LV_func,
+param.result = agm(data=dataTest,time=timeTest,noise.sd=0.31,ode.system=LV_func,
     numberOfParameters=4,temperMismatchParameter=TRUE,
     chainNum=5, maxIterations=200,originalSignalOnlyPositive=TRUE,
     logPrior="Gamma",defaultTemperingScheme="LB10")
+
+print(param.result$posterior.mean)
 
 }

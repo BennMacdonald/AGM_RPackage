@@ -19,13 +19,11 @@ LV_func = function(t, X, params) {
   return(dxdt)
 }
 
-result.file = paste("",getwd(),"/tests_temp.Rdata",sep="")
-
 
 # Running without specifying default priors, should work.
 test_that("Default prior works",{
 expect_silent(agm(data=dataTest,time=timeTest,noise.sd=0.31,ode.system=LV_func,
-     numberOfParameters=4, saveFile=result.file,maxIterations=50))
+     numberOfParameters=4, maxIterations=50))
 })
 
 
@@ -35,20 +33,20 @@ test_that("User-specified prior works",{
                     logPrior= function(params)
                       c(dgamma(params[1:3],1,1,log=TRUE),
                         dgamma(params[4],1,2,log=TRUE)),
-                    numberOfParameters=4, saveFile=result.file, maxIterations=50))
+                    numberOfParameters=4, maxIterations=50))
 })
 
 # Running with wrongly-specified prior, should not work.
 test_that("User-specified prior works",{
   expect_error(agm(data=dataTest,time=timeTest,noise.sd=0.31,ode.system=LV_func,
                     logPrior= "Dirichlet",
-                    numberOfParameters=4, saveFile=result.file, maxIterations=50))
+                    numberOfParameters=4, maxIterations=50))
 })
 
 # Running without specifying ODE system, should not work.
 test_that("ODE system missing throws error",{
   expect_error(agm(data=dataTest,time=timeTest,noise.sd=0.31,
-                   numberOfParameters=4, saveFile=result.file,
+                   numberOfParameters=4,
                    maxIterations=50))
 })
 
