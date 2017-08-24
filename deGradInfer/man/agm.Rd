@@ -2,14 +2,14 @@
 % Please edit documentation in R/agm.R
 \name{agm}
 \alias{agm}
-\title{Title}
+\title{Main function for adaptive gradient matching}
 \usage{
 agm(data, time, ode.system, numberOfParameters, noise.sd = 0.001,
   observedVariables = 1:ncol(data), temperMismatchParameter = FALSE,
   initialisedParameters = NULL, chainNum = 20, gpCovType = "rbf",
   saveFile = NULL, defaultTemperingScheme = NULL, maxIterations = 3e+05,
   showPlot = FALSE, showProgress = FALSE, mismatchParameterValues = NULL,
-  originalSignalOnlyPositive = FALSE, defaultPrior = NULL,
+  originalSignalOnlyPositive = FALSE, logPrior = "Uniform",
   explicit = FALSE, explicitNoiseInfer = TRUE)
 }
 \arguments{
@@ -47,9 +47,9 @@ agm(data, time, ode.system, numberOfParameters, noise.sd = 0.001,
 
 \item{originalSignalOnlyPositive}{Logical: whether all signals observed should be non-negative. When \code{originalSignalOnlyPositive=TRUE}, any negative values of the sampled interpolant will be set to zero. Default is \code{originalSignalOnlyPositive=FALSE}.}
 
-\item{defaultPrior}{A string specifying whether one of the default log priors for the ODE parameters should be used. Current choices are "Uniform", "Gamma" (shape=4, rate=2) and "Mixed" (3 ODE parameters; N(mean=0, sd=0.4), N(mean=0, sd=0.4) and Chisquared(df=2)).}
+\item{logPrior}{A string specifying whether one of the default log priors for the ODE parameters should be used, or a user-specified function. Current choices for the default prior are "Uniform", "Gamma" (shape=4, rate=2) and "Mixed" (3 ODE parameters; N(mean=0, sd=0.4), N(mean=0, sd=0.4). Alternatively the user may specify a function for calculating the prior, see Details below. Default is \code{logPrior='Uniform'}.}
 
-\item{explicit}{Logical: whether the ODE system should be explicitly solved, rather than doing gradient matching. This means that the Gaussian process model is ignored, and the ODE system is directly fitted to the observed data. Default is \code{explicit=FALSE}. Default is \code{defaultPrior=NULL}.}
+\item{explicit}{Logical: whether the ODE system should be explicitly solved, rather than doing gradient matching. This means that the Gaussian process model is ignored, and the ODE system is directly fitted to the observed data. Default is \code{explicit=FALSE}.}
 
 \item{explicitNoiseInfer}{Logical: whether the standard deviation of the observational noise should be inferred when using the method that explicitly solves the ODEs. Only considered when \code{explicit=TRUE}. Default is \code{explicitNoiseInfer=TRUE}.}
 }
@@ -57,10 +57,13 @@ agm(data, time, ode.system, numberOfParameters, noise.sd = 0.001,
 Function returns NULL, but results are saved to file.
 }
 \description{
-Title
+Function agm uses adaptive gradient matching to infer the parameters of a user-defined ODE system from data. For details on AGM,
+see e.g. Dondelinger et al. (2013), MacDonald (2017).
 }
 \details{
 The parameters \code{ode.system} should be a function of the form \code{f(t, X, params)} where t is the time point vector for which the derivatives should be calculated, X is a T by p matrix containing the values of the variables in the system at time \code{t}, and params is a vector with the current estimated parameter values. The function should return a matrix with the derivatives of x with respect to time (in the same order as in x). Note that in order to be consistent with the \code{ode} in package \code{deSolve}, we require that the function also works for input at a single time point.
+
+For specifying a custom prior on the parameters, the user should write their function to take as input a vector of parameters, and return a vector of log densities for a given parameter set. For example, \code{logPrior = function(params) c(dgamma(params,1,1,log=TRUE)} defines a Gamma parameter prior with shape and scale 1.
 }
 \examples{
 
@@ -79,6 +82,6 @@ LV_func = function(t, X, params) {
 agm(data=dataTest,time=timeTest,noise.sd=0.31,ode.system=LV_func,
     numberOfParameters=4,temperMismatchParameter=TRUE,
     chainNum=5, maxIterations=200,originalSignalOnlyPositive=TRUE,
-    defaultPrior="Gamma",defaultTemperingScheme="LB10")
+    logPrior="Gamma",defaultTemperingScheme="LB10")
 
 }

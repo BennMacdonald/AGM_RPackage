@@ -25,7 +25,7 @@ agm(data=dataTest,time=timeTest,noise.sd=0.31,ode.system=LV_func,
      numberOfParameters=4,temperMismatchParameter=TRUE, saveFile=result.file,
      showPlot=FALSE,
      chainNum=5, maxIterations=500,originalSignalOnlyPositive=TRUE,
-     defaultPrior="Gamma",defaultTemperingScheme="LB10")
+     logPrior="Gamma",defaultTemperingScheme="LB10")
 
 load(result.file)
 latest = length(paramsMCMC$lLRec)
