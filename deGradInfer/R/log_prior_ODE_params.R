@@ -2,8 +2,8 @@
 
 calculateLogParamPrior <- function(params,auxVars) {
   
-	if(!is.null(auxVars$defaultLogParamPrior)){	
-		if(auxVars$defaultLogParamPrior=="Uniform") {
+	if(is.null(auxVars$userLogPrior)){	
+		if(auxVars$defaultLogParamPrior=="Uniform"||is.null(auxVars$defaultLogParamPrior)) {
 			# Uniform prior
 			return(0)
 		}
@@ -24,7 +24,7 @@ calculateLogParamPrior <- function(params,auxVars) {
 
 		return(sum(userLogPrior(params)))
 
-	} # end else statement for if(!is.null(auxVars$defaultLogParamPrior)
+	}
 
 }
 
