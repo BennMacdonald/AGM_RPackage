@@ -27,13 +27,18 @@ LV_func = function(t, X, params) {
 
 # AGM
 agm(data=dataTest,time=timeTest,ode.system=LV_func,numberOfParameters=4,temperMismatchParameter=TRUE,
+   maxIterations=100000,originalSignalOnlyPositive=TRUE, showProgress=TRUE, returnResults=FALSE, noise.sd=0.1,
+   defaultPrior="Gamma",defaultTemperingScheme="LB10")
+
+agmResults <- agm(data=dataTest,time=timeTest,ode.system=LV_func,numberOfParameters=4,temperMismatchParameter=TRUE,
    maxIterations=100000,originalSignalOnlyPositive=TRUE, showProgress=TRUE, noise.sd=0.1,
    defaultPrior="Gamma",defaultTemperingScheme="LB10")
+
 
 # Explicit ODE solution
 agm(data=dataTest,time=timeTest,ode.system=LV_func,observedSpecies=1,numberOfParameters=6,temperMismatchParameter=TRUE,
     maxIterations=100000,originalSignalOnlyPositive=TRUE, 
-    showProgress=TRUE, noiseInfer=TRUE,
+    showProgress=TRUE, returnResults=FALSE, noiseInfer=TRUE,
     defaultPrior="Gamma",defaultTemperingScheme="LB10",explicit=TRUE)
 
 
