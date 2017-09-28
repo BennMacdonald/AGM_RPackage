@@ -1,6 +1,9 @@
-# Main function for adaptive gradient matching
 
-#' Title
+#' Main function for adaptive gradient matching
+#'
+#' @description Function agm uses adaptive gradient matching to infer the parameters of a user-defined ODE system from data. For details on AGM,
+#' see e.g. Dondelinger et al. (2013), MacDonald (2017).
+#'
 #'
 #' @param data A matrix of observations of the ODE system over time. The number of rows is equal to the number time points and the number of columns is equal to the number of variables in the system.
 #' @param time A vector containing the time points at which the observations were made.
@@ -17,17 +20,17 @@
 #' @param maxIterations A scalar specifying the number of total MCMC iterations. Default is \code{maxIterations=300000}.
 #' @param showPlot Logical: whether plots of the MCMC progress should be displayed. Default is \code{showPlot=FALSE}.
 #' @param showProgress Logical: whether \% completion and various parameter values should be printed to the workspace. Default is \code{showProgress=FALSE}.
-#' @param returnResults Logical: whether the parameter estimates and log likelihood for the top temperature chain should be returned by the function upon completion of the MCMC. Default is \code{showResults=TRUE}. Note: regardless of the choice of this argument, the results will still be saved to disk.
 #' @param mismatchParameterValues A matrix containing user specified values for the gradient mismatch parameter. The number of rows should be equal to \code{chainNum} and the number of columns should be equal to the number of variables in the system. A typical ladder should have the largest value in the first row and the smallest value in the last row. Should only be used when \code{defaultTemperingScheme=NULL}. Default is \code{mismatchParameterValues=NULL}.
 #' @param originalSignalOnlyPositive Logical: whether all signals observed should be non-negative. When \code{originalSignalOnlyPositive=TRUE}, any negative values of the sampled interpolant will be set to zero. Default is \code{originalSignalOnlyPositive=FALSE}.
-#' @param defaultPrior A string specifying whether one of the default log priors for the ODE parameters should be used. Current choices are "Uniform", "Gamma" (shape=4, rate=2) and "Mixed" (3 ODE parameters; N(mean=0, sd=0.4), N(mean=0, sd=0.4) and Chisquared(df=2)). If left NULL, then it defaults to a Uniform prior.
-#' @param userLogPrior A function specifying a prior defined by the user. The user should write their function to return a vector of log densities, for a given parameter set. If this argument is left NULL, it defaults to a Uniform prior unless the user has specified a different default prior using the argument \code{defaultPrior}.
-#' @param explicit Logical: whether the ODE system should be explicitly solved, rather than doing gradient matching. This means that the Gaussian process model is ignored, and the ODE system is directly fitted to the observed data. Default is \code{explicit=FALSE}. Default is \code{defaultPrior=NULL}.
+#' @param logPrior A string specifying whether one of the default log priors for the ODE parameters should be used, or a user-specified function. Current choices for the default prior are "Uniform", "Gamma" (shape=4, rate=2) and "Mixed" (3 ODE parameters; N(mean=0, sd=0.4), N(mean=0, sd=0.4). Alternatively the user may specify a function for calculating the prior, see Details below. Default is \code{logPrior='Uniform'}.
+#' @param explicit Logical: whether the ODE system should be explicitly solved, rather than doing gradient matching. This means that the Gaussian process model is ignored, and the ODE system is directly fitted to the observed data. Default is \code{explicit=FALSE}.
 #' @param explicitNoiseInfer Logical: whether the standard deviation of the observational noise should be inferred when using the method that explicitly solves the ODEs. Only considered when \code{explicit=TRUE}. Default is \code{explicitNoiseInfer=TRUE}.
 #'
 #' @details
 #' The parameters \code{ode.system} should be a function of the form \code{f(t, X, params)} where t is the time point vector for which the derivatives should be calculated, X is a T by p matrix containing the values of the variables in the system at time \code{t}, and params is a vector with the current estimated parameter values. The function should return a matrix with the derivatives of x with respect to time (in the same order as in x). Note that in order to be consistent with the \code{ode} in package \code{deSolve}, we require that the function also works for input at a single time point.
-#' @return Function returns NULL, but results are saved to file.
+#'
+#' For specifying a custom prior on the parameters, the user should write their function to take as input a vector of parameters, and return a vector of log densities for a given parameter set. For example, \code{logPrior = function(params) c(dgamma(params,1,1,log=TRUE)} defines a Gamma parameter prior with shape and scale 1.
+#' @return Function returns a list with elements \code{posterior.mean}, the mean of the parameter samples from the posterior (after burning of 1/4 of the number of samples taken), \code{posterior.sd}, the standard deviation, \code{posterior.samples}, the parameter samples, \code{ll} the log likelihood, \code{x.samples}, the samples of the latent variables, \code{gp.samples}, the samples of the GP hyperparameters, \code{noise.samples} the samples of sigma, \code{swappedChains} the number of times the chains have been swapped, \code{ll.all.chain}, the log likelihood for all chains and \code{tuning}, the inferred tuning parameters for acceptance of the MCMC moves.
 #' @export
 #' @importFrom deSolve ode
 #' @import gptk stats graphics
@@ -46,19 +49,21 @@
 #' 	return(dxdt)
 #' }
 #'
-#' agm(data=dataTest,time=timeTest,noise.sd=0.31,ode.system=LV_func,
+#' param.result = agm(data=dataTest,time=timeTest,noise.sd=0.31,ode.system=LV_func,
 #'     numberOfParameters=4,temperMismatchParameter=TRUE,
 #'     chainNum=5, maxIterations=200,originalSignalOnlyPositive=TRUE,
-#'     defaultPrior="Gamma",defaultTemperingScheme="LB10")
+#'     logPrior="Gamma",defaultTemperingScheme="LB10")
+#'
+#' print(param.result$posterior.mean)
 #'
 agm <- function(data,time,ode.system,numberOfParameters,noise.sd=1e-3, observedVariables=1:ncol(data),
                 temperMismatchParameter=FALSE,
                 initialisedParameters=NULL,
                 chainNum=20,gpCovType="rbf",saveFile=NULL,
                 defaultTemperingScheme=NULL,maxIterations=300000,showPlot=FALSE,
-                showProgress=FALSE,returnResults=TRUE,mismatchParameterValues=NULL,
-                originalSignalOnlyPositive=FALSE,defaultPrior=NULL, userLogPrior=NULL,
-		    explicit=FALSE, explicitNoiseInfer=TRUE)
+                showProgress=FALSE,mismatchParameterValues=NULL,
+                originalSignalOnlyPositive=FALSE,logPrior='Uniform',
+		            explicit=FALSE, explicitNoiseInfer=TRUE)
 { # Start function agm
 
   ### For the time being, users will not be able to use the option to infer the
@@ -154,13 +159,6 @@ agm <- function(data,time,ode.system,numberOfParameters,noise.sd=1e-3, observedV
   # species. Here nrow = 3 since currently the only GP
   # covariance kernels that are supported have < 4 hyperparameters
 
-  ### Specify the save file location if none given, for the results of the
-  ### population MCMC. Defaults to working directory
-
-  if (is.null(saveFile)){
-    saveFile <- paste("",getwd(),"/AGM_Results.Rdata",sep="")
-  }
-
   ### Set-up lambda if tempering using the LB2 or LB10 schemes
 
   if (temperMismatchParameter==TRUE && !is.null(defaultTemperingScheme)){
@@ -201,7 +199,7 @@ agm <- function(data,time,ode.system,numberOfParameters,noise.sd=1e-3, observedV
                                 lambdaValues=mismatchParameterValues),
                   covtype=gpCovType,observedSpeciesList=observedVariables,
                   constant=dataConstants,sigmaInfer=noiseInfer,
-			defaultLogParamPrior=defaultPrior,userLogPrior=userLogPrior)
+			           logPrior=logPrior)
 
   auxVars$ode.system = ode.system
 
@@ -238,14 +236,25 @@ agm <- function(data,time,ode.system,numberOfParameters,noise.sd=1e-3, observedV
 
   paramsMCMC <- doMCMC(time,dataset,auxVars,options)
 
+  # Clean up output
+  after.burnin = paramsMCMC$paramsRec[
+    round(dim(paramsMCMC$paramsRec)[1]/4):dim(paramsMCMC$paramsRec)[1],]
+
+  result = list(posterior.mean=colMeans(after.burnin),
+                posterior.sd=apply(after.burnin,2,sd),
+                posterior.samples=paramsMCMC$paramsRec,
+                ll=paramsMCMC$lLRec,
+                x.samples=paramsMCMC$xRec,
+                gp.samples=paramsMCMC$gpRec,
+                noise.samples=paramsMCMC$noiseRec,
+                swappedChains=paramsMCMC$swappedChains,
+                ll.all.chains=paramsMCMC$lLAllChains,
+                tuning=paramsMCMC$tuning)
+
   ### Save the final results of the MCMC to the location specified in "saveFile"
+  if (!is.null(saveFile)) save(result,file=saveFile)
 
-  save(paramsMCMC,file=saveFile)
-
-  if (returnResults==TRUE)
-  {
-	return(list(paramsRec=paramsMCMC$paramsRec,logLikelihood=paramsMCMC$lLRec))
-  }
+  return(result)
 
 } # End function agm
 
