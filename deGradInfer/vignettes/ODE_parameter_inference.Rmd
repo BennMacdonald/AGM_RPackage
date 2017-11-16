@@ -164,7 +164,7 @@ Note that the number of parameters has increased; this is because the initial st
 
 # A slightly bigger example
 
-The package can in principle deal with ODE systems of any size, although in practice the achievable size will depend on memory and running time considerations. Here we demonstrate the performance on an ODE system with five equations and six parameters, derived from @vyshemirsky2007.
+The package can in principle deal with ODE systems of any size, although in practice the achievable size will depend on memory and running time considerations. Here we show how to apply it to an ODE system with five equations and six parameters, derived from @vyshemirsky2007.
 
 ```{r, eval=FALSE} 
 # Function encoding the Vyshemirsky and Girolami ODE model 1.
