@@ -273,7 +273,7 @@ doMCMC <- function(timePoints, data, auxVars, options) {
 
       }}
 
-    if(i %% saveRate == 0) {
+    if(!is.null(options$saveFile) && i %% saveRate == 0) {
       if (!auxVars$Mismatch$Tempering){
         params = list(parameters=parameters, tuning=tuning,
                       paramsRec=paramsRec, lLRec=lLRec, xRec=xRec, gpRec=gpRec, timePoints=timePoints,
@@ -290,7 +290,7 @@ doMCMC <- function(timePoints, data, auxVars, options) {
                       chainNums=options$chainNum, maxIterations=options$iterations,
                       lLAllChains=lLAllChains)
       }
-
+      
       save(params, file=options$saveFile)
     }
 
