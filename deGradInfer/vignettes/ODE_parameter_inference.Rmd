@@ -104,9 +104,7 @@ Here we only run the model for 1000 iterations, which is not sufficient to reach
 library('deGradInfer')
 
 agm.result = agm(test.data,test.times,LV_func,4,noise.sd=0.1,
-                 maxIterations=1000,temperMismatchParameter=FALSE,
-                 chainNum=5, originalSignalOnlyPositive=TRUE,
-                 logPrior="Gamma",defaultTemperingScheme="LB10")
+                 maxIterations=1000,chainNum=5)
 
 print(agm.result$posterior.mean)
 ```
@@ -129,7 +127,7 @@ ggplot(plotting.frame, aes(x=Param.Values, y=..scaled..)) +
 We can also inspect the evolution of the log likelihood:
 
 ```{r} 
-qplot(x=seq(100,1000,100), y=agm.result$ll, geom = 'line') + 
+qplot(x=seq(100,1000,100), y=c(agm.result$ll), geom = 'line') + 
   labs(x='Iterations', y='Log-likelihood')
   
 
