@@ -1,11 +1,11 @@
 Package: deGradInfer
 Title: Parameter Inference for Systems of Differential Equation
 Version: 1.0.0
-Authors@R: c(person("Benn", "MacDonald", email = "Benn.MacDonald@glasgow.ac.uk", role = c("aut")),
+Authors@R: c(person("Benn", "Macdonald", email = "Benn.Macdonald@glasgow.ac.uk", role = c("aut")),
              person("Frank", "Dondelinger", email = "fdondelinger.work@gmail.com", role = c("aut", "cre")))
 Description: This package performs efficient Bayesian parameter inference 
     for systems of ordinary differential equations. The inference is based
-    on adaptive gradient matching (AGM, Dondelinger et al. 2013, MacDonald 
+    on adaptive gradient matching (AGM, Dondelinger et al. 2013, Macdonald 
     2017), which offers orders-of-magnitude improvements in computational 
     efficiency over standard methods that require solving the differential 
     equation system. Features of the package include flexible specification 
