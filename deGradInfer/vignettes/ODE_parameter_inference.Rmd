@@ -127,7 +127,7 @@ ggplot(plotting.frame, aes(x=Param.Values, y=..scaled..)) +
 We can also inspect the evolution of the log likelihood:
 
 ```{r} 
-qplot(x=seq(100,1000,100), y=c(agm.result$ll), geom = 'line') + 
+qplot(x=seq(25,1000,25), y=c(agm.result$ll), geom = 'line') + 
   labs(x='Iterations', y='Log-likelihood')
   
 
