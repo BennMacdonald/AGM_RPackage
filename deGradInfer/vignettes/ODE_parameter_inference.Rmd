@@ -58,7 +58,7 @@ testLogPrior <- function(params)
 We will use the example of a simple Lotka-Volterra prey-predator system. This consists of two variables representing a predator species and a prey species. The system is governed by four parameters and takes the following form:
 
 $$
-\frac{dx_1}{dt} =  x_1 (a - b x_2) \hspace{1cm}\mathrm{Prey}\\
+\frac{dx_1}{dt} =  x_1 (a - b x_2) \hspace{1cm}\mathrm{Prey} \\
 \frac{dx_2}{dt} = -x_2 (c x_2 - d x_1) \hspace{1cm}\mathrm{Predators}
 $$
 

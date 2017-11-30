@@ -1,6 +1,6 @@
 Package: deGradInfer
 Title: Parameter Inference for Systems of Differential Equation
-Version: 0.0.0.9000
+Version: 1.0.0
 Authors@R: c(person("Benn", "MacDonald", email = "Benn.MacDonald@glasgow.ac.uk", role = c("aut")),
              person("Frank", "Dondelinger", email = "fdondelinger.work@gmail.com", role = c("aut", "cre")))
 Description: This package performs efficient Bayesian parameter inference 

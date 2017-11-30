@@ -31,20 +31,12 @@ doMCMC <- function(timePoints, data, auxVars, options) {
                        1000)
   # When to record current sample
   recordRate = ifelse('recordRate' %in% names(options), options$recordRate,
-                      100)
+                      25)
   # When to save all samples
   saveRate = ifelse('saveRate' %in% names(options), options$saveRate, 1e4)
 
-  #temp.exponent = 5
-  #temperatures = seq(0, 1, length.out=chainNum)^temp.exponent
-
-  powers <- 1:chainNum
-  temp.exponent <- powers[options$temps]
-  temperatures <- c()
-  for(CHAIN in 1:chainNum)
-  {
-    temperatures[CHAIN] <- (CHAIN/chainNum)^temp.exponent
-  }
+  temp.exponent = options$temps
+  temperatures = seq(1/chainNum, 1, length.out=chainNum)^temp.exponent
 
   lLchains = matrix(-1e6, chainNum, 1); lLRec = matrix(0, 0, 1)
   dataLLchains = matrix(0, chainNum, speciesNum)
@@ -75,30 +67,6 @@ doMCMC <- function(timePoints, data, auxVars, options) {
       }
     }
 
-
-    # Sample Lambda
-    if (!auxVars$Mismatch$Tempering){
-      if(!options$explicit && runif(1) > 0.99) {
-        pick = resample(auxVars$speciesList, 1)
-        lambda.sampling = sampleLambda(lambda[chain,], gpFit[[chain]], x[[chain]],
-                                       parameters[chain,], timePoints, auxVars, pick,
-                                       chain, chainTemp)
-        lambda[chain,pick] = lambda.sampling$lambda
-        lLchains[chain] = lambda.sampling$lL.new
-
-        #cat(lambda.sampling$lL.old, lambda.sampling$accept, lambda.sampling$lL.new, '\n')
-
-        if(lambda.sampling$accept) lastMove = 'LambdaAccept'
-        else lastMove = 'LambdaReject'
-
-        tuning$proposeLambdaTemp[chain,pick] = tuning$proposeLambdaTemp[chain,pick] + 1
-        tuning$acceptLambdaTemp[chain,pick] = tuning$acceptLambdaTemp[chain,pick] + lambda.sampling$accept
-
-        if(lLchains[chain] > 1e4) browser()
-      }
-    }
-
-
     # Chain-specific Inference
     for(j in 1:chainNum) {
 
@@ -106,9 +74,30 @@ doMCMC <- function(timePoints, data, auxVars, options) {
       chainParams = parameters[chain,]
       chainTemp = temperatures[chain]
       u = runif(1,0,1)
-
-      # GP Parameter Inference, coupled with latent variable inference
-      if(!options$explicit && i > options$burnin && u > 0.98) {
+      
+      
+      # Sample Lambda
+      if(!auxVars$Mismatch$Tempering && 
+         !options$explicit && u > 0.99) {
+        pick = resample(auxVars$speciesList, 1)
+        lambda.sampling = sampleLambda(lambda[chain,], gpFit[[chain]], x[[chain]],
+                                       parameters[chain,], timePoints, auxVars, pick,
+                                       chain, chainTemp)
+        lambda[chain,pick] = lambda.sampling$lambda
+        lLchains[chain] = lambda.sampling$lL.new
+        
+        #cat(lambda.sampling$lL.old, lambda.sampling$accept, lambda.sampling$lL.new, '\n')
+        
+        if(lambda.sampling$accept) lastMove = 'LambdaAccept'
+        else lastMove = 'LambdaReject'
+        
+        tuning$proposeLambdaTemp[chain,pick] = tuning$proposeLambdaTemp[chain,pick] + 1
+        tuning$acceptLambdaTemp[chain,pick] = tuning$acceptLambdaTemp[chain,pick] + lambda.sampling$accept
+        
+        if(lLchains[chain] > 1e4) browser()
+      
+      } else if(!options$explicit && i > options$burnin && u > 0.97) {
+        # GP Parameter Inference, coupled with latent variable inference
         pick = resample(auxVars$speciesList, 1)
 
         gp.sampling = sampleGPX(gpFit[[chain]], sigma[chain, pick], x[[chain]], y[,pick],

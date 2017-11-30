@@ -48,3 +48,5 @@ Temporary Items
 
 *.Rdata
 .Rproj.user
+*.pdf
+*.html

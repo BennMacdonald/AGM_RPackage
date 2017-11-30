@@ -16,6 +16,7 @@ for(test.case.i in 1:4) {
                                   auxVars, species, chain)
                                       
   test_that("Likelihood is unchanged", {
+    skip_on_cran()
     expect_equal_to_reference(LL, paste0('ll_', test.case.i, '.rds'))
   })
 }

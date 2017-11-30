@@ -21,7 +21,7 @@ agm(data, time, ode.system, numberOfParameters, noise.sd = 0.001,
 
 \item{numberOfParameters}{A scalar specifying the number of parameters in the ODE system. If explicitly solving the ODE system, the number of parameters will (usually) be equal to the number of ODE parameters plus the number of initial conditions of the system.}
 
-\item{noise.sd}{A scalar specifiying the value at which to fix the standard deviation of the observational noise. Default \code{noise.sd=1e-3}.}
+\item{noise.sd}{A scalar specifying the value at which to fix the standard deviation of the observational noise. Default \code{noise.sd=1e-3}.}
 
 \item{observedVariables}{A vector specifying which variables are observed in the system. Default is \code{observedVariables=1:ncol(data)} (fully observed system).}
 
@@ -79,9 +79,11 @@ LV_func = function(t, X, params) {
 	return(dxdt)
 }
 
+# Example run only; to achieve convergence the number of iterations and
+# chains must be increased.
 param.result = agm(data=dataTest,time=timeTest,noise.sd=0.31,ode.system=LV_func,
     numberOfParameters=4,temperMismatchParameter=TRUE,
-    chainNum=5, maxIterations=200,originalSignalOnlyPositive=TRUE,
+    chainNum=4, maxIterations=150,originalSignalOnlyPositive=TRUE,
     logPrior="Gamma",defaultTemperingScheme="LB10")
 
 print(param.result$posterior.mean)

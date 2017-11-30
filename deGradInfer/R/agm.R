@@ -9,7 +9,7 @@
 #' @param time A vector containing the time points at which the observations were made.
 #' @param ode.system A function describing the ODE system. See Details for more information.
 #' @param numberOfParameters A scalar specifying the number of parameters in the ODE system. If explicitly solving the ODE system, the number of parameters will (usually) be equal to the number of ODE parameters plus the number of initial conditions of the system.
-#' @param noise.sd A scalar specifiying the value at which to fix the standard deviation of the observational noise. Default \code{noise.sd=1e-3}.
+#' @param noise.sd A scalar specifying the value at which to fix the standard deviation of the observational noise. Default \code{noise.sd=1e-3}.
 #' @param observedVariables A vector specifying which variables are observed in the system. Default is \code{observedVariables=1:ncol(data)} (fully observed system).
 #' @param temperMismatchParameter Logical: whether tempering of the gradient mismatch parameter be carried out? Default is \code{temperMismatchParameter=FALSE}.
 #' @param initialisedParameters A vector containing ODE parameters at which to intialise the MCMC. Can be set as \code{NULL} to initialise with a random draw from the prior distribution. Default is \code{initialisedParameters=NULL}.
@@ -49,9 +49,11 @@
 #' 	return(dxdt)
 #' }
 #'
+#' # Example run only; to achieve convergence the number of iterations and
+#' # chains must be increased.
 #' param.result = agm(data=dataTest,time=timeTest,noise.sd=0.31,ode.system=LV_func,
 #'     numberOfParameters=4,temperMismatchParameter=TRUE,
-#'     chainNum=5, maxIterations=200,originalSignalOnlyPositive=TRUE,
+#'     chainNum=4, maxIterations=150,originalSignalOnlyPositive=TRUE,
 #'     logPrior="Gamma",defaultTemperingScheme="LB10")
 #'
 #' print(param.result$posterior.mean)
@@ -87,7 +89,7 @@ agm <- function(data,time,ode.system,numberOfParameters,noise.sd=1e-3, observedV
     defaultTemperingScheme <- NULL
   }
 
-  temperatureExponentChains <- 5 # Friel and Pettit
+  temperatureExponentChains <- 5 # Calderhead MSc thesis 2008
 
   time <- as.matrix(time)
 
@@ -112,7 +114,7 @@ agm <- function(data,time,ode.system,numberOfParameters,noise.sd=1e-3, observedV
 
   inferredParams <- 1:numberOfParameters
 
-  ### Specifiy how the initial parameters are chosen. Sometimes it is desired to
+  ### Specify how the initial parameters are chosen. Sometimes it is desired to
   ### set values of the initial parameters, so that the MCMC algorithm has
   ### a good place to start and sometimes it is desired to randomly draw
   ### the starting values.
