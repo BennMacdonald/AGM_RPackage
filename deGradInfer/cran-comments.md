@@ -21,3 +21,8 @@ Possibly mis-spelled words in DESCRIPTION:
 
 ## Downstream dependencies
 None, as this is a new package.
+
+## Further comments
+Resubmission after CRAN feedback:
+* The Description field no longer starts with 'This package'.
+* Inserted URLs for the references in the Description field (as DOIs were not available).
