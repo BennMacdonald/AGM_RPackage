@@ -88,6 +88,7 @@ fitModel <- function(model, display, covtype) {
     return(models[[best]]) 
 }
 
+
 sigmoidKernParamInit <- function(kern) {
   kern$a <- 0.1 
   kern$b <- 0.1 
@@ -188,6 +189,14 @@ sigmoidKernDiagCompute <- function (kern, x)
   return(k)
 }
 
+
+#' Auxiliary function for sigmoid kernel (used by gptk)
+#'
+#' @param kern - GP kernel
+#'
+#' @return initialized kernel
+#' @export
+#'
 sigmoidVarKernParamInit <- function(kern) {
   kern$a <- 1
   kern$b <- 1  
@@ -204,6 +213,15 @@ sigmoidVarKernParamInit <- function(kern) {
   return(kern)
 }
 
+#' Auxiliary function for sigmoid kernel (used by gptk)
+#'
+#' @param kern - kernel
+#' @param only.values - return values only
+#' @param untransformed.values - transform values
+#'
+#' @return hyperparameters of the GP kernel
+#' @export
+#'
 sigmoidVarKernExtractParam <- function (kern, only.values = TRUE, 
                                       untransformed.values = TRUE) {
   params <- c(kern$a, kern$b, kern$var)
@@ -213,6 +231,14 @@ sigmoidVarKernExtractParam <- function (kern, only.values = TRUE,
   return(params)
 }
 
+#' Insert parameters into sigmoid kernel (used by gptk)
+#'
+#' @param kern kernel
+#' @param params parameters
+#'
+#' @return kernel
+#' @export
+#'
 sigmoidVarKernExpandParam <- function (kern, params)  {
   if (is.list(params)) 
     params <- params$values
@@ -222,6 +248,16 @@ sigmoidVarKernExpandParam <- function (kern, params)  {
   return(kern)
 }
 
+
+#' Compute K(x, x2) for sigmoid kernel, used by gptk
+#'
+#' @param kern kernel
+#' @param x input 1
+#' @param x2 input 2
+#'
+#' @return K(x, x2)
+#' @export
+#'
 sigmoidVarKernCompute <- function (kern, x, x2 = NULL) {
 
   if (nargs() < 3) {
@@ -240,6 +276,16 @@ sigmoidVarKernCompute <- function (kern, x, x2 = NULL) {
   return(k)
 }
 
+#' Compute gradient of sigmoid kernel with respect to each parameter (used by gptk)
+#'
+#' @param kern kernel
+#' @param x input 1
+#' @param x2 input 2
+#' @param covGrad gradient of covariance function
+#'
+#' @return d k(x, x2) / d theta
+#' @export
+#'
 sigmoidVarKernGradient <- function (kern, x, x2, covGrad) 
 {
   
@@ -283,6 +329,15 @@ sigmoidVarKernGradient <- function (kern, x, x2, covGrad)
   return(g)
 }
 
+
+#' Compute diagonal of sigmoid kernel (used by gptk).
+#'
+#' @param kern Kernel
+#' @param x Input
+#'
+#' @return 
+#' @export
+#'
 sigmoidVarKernDiagCompute <- function (kern, x) 
 {
   x2 = x^2
