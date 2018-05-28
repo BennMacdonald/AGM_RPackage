@@ -13,7 +13,7 @@
 #' @param observedVariables A vector specifying which variables are observed in the system. Default is \code{observedVariables=1:ncol(data)} (fully observed system).
 #' @param temperMismatchParameter Logical: whether tempering of the gradient mismatch parameter be carried out? Default is \code{temperMismatchParameter=FALSE}.
 #' @param initialisedParameters A vector containing ODE parameters at which to intialise the MCMC. Can be set as \code{NULL} to initialise with a random draw from the prior distribution. Default is \code{initialisedParameters=NULL}.
-#' @param chainNum A scalar specifying the number of parallel temperature chains. Default is \code{chainNum=20}.
+#' @param chainNum A scalar specifying the number of parallel temperature chains. Default is\\ \code{chainNum=20}.
 #' @param gpCovType A string specifying the choice of kernel for the Gaussian process. Currently, there are two: \code{gpCovType="rbf"} and \code{gpCovType="sigmoidVar"}.
 #' @param saveFile A string specifying the path and name of the file containing the result output. Can be set as \code{NULL} to save as "AGM Results.R" to the current working directory. Default is \code{saveFile=NULL}.
 #' @param defaultTemperingScheme A string indicating which of the two default gradient mismatch parameter value ladders to use. Choices are \code{defaultTemperingScheme="LB2"} or\\ \code{defaultTemperingScheme="LB10"}. Should only be used when \code{temperMismatchParameter=TRUE}. Default is\\ \code{defaultTemperingScheme=NULL}.
