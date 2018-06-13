@@ -95,11 +95,12 @@ agm <- function(data,time,ode.system,numberOfParameters,noise.sd=1e-3, observedV
 
 
 
-  dataConstants <- matrix(NA,nrow=nrow(data),ncol=ncol(data))
-  for (i in 1:ncol(dataConstants))
+  dataConstants <- matrix(0,nrow=nrow(data),ncol=ncol(data))
+  for (i in (observedVariables))
   {
     dataConstants[,i] <- mean(data[,i])
   }
+
 
   dataset <- data - dataConstants
 
