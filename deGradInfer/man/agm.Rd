@@ -4,13 +4,28 @@
 \alias{agm}
 \title{Main function for adaptive gradient matching}
 \usage{
-agm(data, time, ode.system, numberOfParameters, noise.sd = 0.001,
-  observedVariables = 1:ncol(data), temperMismatchParameter = FALSE,
-  initialisedParameters = NULL, chainNum = 20, gpCovType = "rbf",
-  saveFile = NULL, defaultTemperingScheme = NULL, maxIterations = 3e+05,
-  showPlot = FALSE, showProgress = FALSE, mismatchParameterValues = NULL,
-  originalSignalOnlyPositive = FALSE, logPrior = "Uniform",
-  explicit = FALSE, explicitNoiseInfer = TRUE)
+agm(
+  data,
+  time,
+  ode.system,
+  numberOfParameters,
+  noise.sd = 0.001,
+  observedVariables = 1:ncol(data),
+  temperMismatchParameter = FALSE,
+  initialisedParameters = NULL,
+  chainNum = 20,
+  gpCovType = "rbf",
+  saveFile = NULL,
+  defaultTemperingScheme = NULL,
+  maxIterations = 3e+05,
+  showPlot = FALSE,
+  showProgress = FALSE,
+  mismatchParameterValues = NULL,
+  originalSignalOnlyPositive = FALSE,
+  logPrior = "Uniform",
+  explicit = FALSE,
+  explicitNoiseInfer = TRUE
+)
 }
 \arguments{
 \item{data}{A matrix of observations of the ODE system over time. The number of rows is equal to the number time points and the number of columns is equal to the number of variables in the system.}
@@ -29,15 +44,15 @@ agm(data, time, ode.system, numberOfParameters, noise.sd = 0.001,
 
 \item{initialisedParameters}{A vector containing ODE parameters at which to intialise the MCMC. Can be set as \code{NULL} to initialise with a random draw from the prior distribution. Default is \code{initialisedParameters=NULL}.}
 
-\item{chainNum}{A scalar specifying the number of parallel temperature chains. Default is \code{chainNum=20}.}
+\item{chainNum}{A scalar specifying the number of parallel temperature chains. Default is\\ \code{chainNum=20}.}
 
 \item{gpCovType}{A string specifying the choice of kernel for the Gaussian process. Currently, there are two: \code{gpCovType="rbf"} and \code{gpCovType="sigmoidVar"}.}
 
 \item{saveFile}{A string specifying the path and name of the file containing the result output. Can be set as \code{NULL} to save as "AGM Results.R" to the current working directory. Default is \code{saveFile=NULL}.}
 
-\item{defaultTemperingScheme}{A string indicating which of the two default gradient mismatch parameter value ladders to use. Choices are \code{defaultTemperingScheme="LB2"} or \code{defaultTemperingScheme="LB10"}. Should only be used when \code{temperMismatchParameter=TRUE}. Default is \code{defaultTemperingScheme=NULL}.}
+\item{defaultTemperingScheme}{A string indicating which of the two default gradient mismatch parameter value ladders to use. Choices are \code{defaultTemperingScheme="LB2"} or\\ \code{defaultTemperingScheme="LB10"}. Should only be used when \code{temperMismatchParameter=TRUE}. Default is\\ \code{defaultTemperingScheme=NULL}.}
 
-\item{maxIterations}{A scalar specifying the number of total MCMC iterations. Default is \code{maxIterations=300000}.}
+\item{maxIterations}{A scalar specifying the number of total MCMC iterations. Default is\\ \code{maxIterations=300000}.}
 
 \item{showPlot}{Logical: whether plots of the MCMC progress should be displayed. Default is \code{showPlot=FALSE}.}
 
@@ -45,7 +60,7 @@ agm(data, time, ode.system, numberOfParameters, noise.sd = 0.001,
 
 \item{mismatchParameterValues}{A matrix containing user specified values for the gradient mismatch parameter. The number of rows should be equal to \code{chainNum} and the number of columns should be equal to the number of variables in the system. A typical ladder should have the largest value in the first row and the smallest value in the last row. Should only be used when \code{defaultTemperingScheme=NULL}. Default is \code{mismatchParameterValues=NULL}.}
 
-\item{originalSignalOnlyPositive}{Logical: whether all signals observed should be non-negative. When \code{originalSignalOnlyPositive=TRUE}, any negative values of the sampled interpolant will be set to zero. Default is \code{originalSignalOnlyPositive=FALSE}.}
+\item{originalSignalOnlyPositive}{Logical: whether all signals observed should be non-negative. When\\ \code{originalSignalOnlyPositive=TRUE}, any negative values of the sampled interpolant will be set to zero. Default is \code{originalSignalOnlyPositive=FALSE}.}
 
 \item{logPrior}{A string specifying whether one of the default log priors for the ODE parameters should be used, or a user-specified function. Current choices for the default prior are "Uniform", "Gamma" (shape=4, rate=2) and "Mixed" (3 ODE parameters; N(mean=0, sd=0.4), N(mean=0, sd=0.4). Alternatively the user may specify a function for calculating the prior, see Details below. Default is \code{logPrior='Uniform'}.}
 
@@ -54,11 +69,11 @@ agm(data, time, ode.system, numberOfParameters, noise.sd = 0.001,
 \item{explicitNoiseInfer}{Logical: whether the standard deviation of the observational noise should be inferred when using the method that explicitly solves the ODEs. Only considered when \code{explicit=TRUE}. Default is \code{explicitNoiseInfer=TRUE}.}
 }
 \value{
-Function returns a list with elements \code{posterior.mean}, the mean of the parameter samples from the posterior (after burning of 1/4 of the number of samples taken), \code{posterior.sd}, the standard deviation, \code{posterior.samples}, the parameter samples, \code{ll} the log likelihood, \code{x.samples}, the samples of the latent variables, \code{gp.samples}, the samples of the GP hyperparameters, \code{noise.samples} the samples of sigma, \code{swappedChains} the number of times the chains have been swapped, \code{ll.all.chain}, the log likelihood for all chains and \code{tuning}, the inferred tuning parameters for acceptance of the MCMC moves.
+Function returns a list with elements \code{posterior.mean}, the mean of the parameter samples from the posterior (after burning of 1/4 of the number of samples taken), \code{posterior.sd}, the standard deviation, \code{posterior.samples}, the parameter samples, \code{ll}, the log likelihood, \code{x.samples}, the samples of the latent variables, \code{gp.samples}, the samples of the GP hyperparameters, \code{noise.samples}, the samples of sigma (currently fixed), \code{swappedChains}, the number of times the chains have been swapped, \code{ll.all.chain}, the log likelihood for all chains and \code{tuning}, the inferred tuning parameters for acceptance of the MCMC moves.
 }
 \description{
 Function agm uses adaptive gradient matching to infer the parameters of a user-defined ODE system from data. For details on AGM,
-see e.g. Dondelinger et al. (2013), MacDonald (2017).
+see e.g. Dondelinger et al. (2013), Macdonald (2017).
 }
 \details{
 The parameters \code{ode.system} should be a function of the form \code{f(t, X, params)} where t is the time point vector for which the derivatives should be calculated, X is a T by p matrix containing the values of the variables in the system at time \code{t}, and params is a vector with the current estimated parameter values. The function should return a matrix with the derivatives of x with respect to time (in the same order as in x). Note that in order to be consistent with the \code{ode} in package \code{deSolve}, we require that the function also works for input at a single time point.

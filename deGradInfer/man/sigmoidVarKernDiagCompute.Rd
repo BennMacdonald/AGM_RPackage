@@ -11,6 +11,9 @@ sigmoidVarKernDiagCompute(kern, x)
 
 \item{x}{Input}
 }
+\value{
+Diagonal of the kernel
+}
 \description{
 Compute diagonal of sigmoid kernel (used by gptk).
 }

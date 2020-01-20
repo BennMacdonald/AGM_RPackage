@@ -5,24 +5,29 @@
 ## R CMD check results
 There were no ERRORs or WARNINGs. There was 1 NOTE:
 
-NOTE
-Maintainer: 'Frank Dondelinger <fdondelinger.work@gmail.com>'
-
-New submission
-
-Possibly mis-spelled words in DESCRIPTION:
-  AGM (8:36)
-  Dondelinger (8:41)
-  MCMC (13:39)
-  al (8:56)
-  et (8:53)
+* checking CRAN incoming feasibility ... NOTE
+  Maintainer: 'Frank Dondelinger <fdondelinger.work@gmail.com>'
   
-(These words are spelled correctly.)
+  New submission
+  Package was archived on CRAN
+  
+  
+  Possibly mis-spelled words in DESCRIPTION:
+    AGM (8:6)
+    Dondelinger (8:11)
+    Macdonald (9:5)
+    al (8:26)
+    et (8:23)
+  
+  CRAN repository db overrides:
+    X-CRAN-Comment: Archived on 2019-12-21 as check problems were not
+      corrected in time.
+
+The issues with the package that caused it to fail the check have been addressed (see below). The words in the DESCRIPTION are spelled correctly.
 
 ## Downstream dependencies
-None, as this is a new package.
+No known dependencies.
 
 ## Further comments
-Resubmission after CRAN feedback:
-* Inserted missing space before URLs for the references in the Description field.
-* Removed extra period in Description field.
+Resubmission after it was removed from CRAN for throwing an error:
+* Fixed code that was using the `class()` function incorrectly and throwing an error.

@@ -335,7 +335,7 @@ sigmoidVarKernGradient <- function (kern, x, x2, covGrad)
 #' @param kern Kernel
 #' @param x Input
 #'
-#' @return 
+#' @return Diagonal of the kernel
 #' @export
 #'
 sigmoidVarKernDiagCompute <- function (kern, x) 

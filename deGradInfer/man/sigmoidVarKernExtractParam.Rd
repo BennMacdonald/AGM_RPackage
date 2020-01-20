@@ -4,8 +4,11 @@
 \alias{sigmoidVarKernExtractParam}
 \title{Auxiliary function for sigmoid kernel (used by gptk)}
 \usage{
-sigmoidVarKernExtractParam(kern, only.values = TRUE,
-  untransformed.values = TRUE)
+sigmoidVarKernExtractParam(
+  kern,
+  only.values = TRUE,
+  untransformed.values = TRUE
+)
 }
 \arguments{
 \item{kern}{- kernel}

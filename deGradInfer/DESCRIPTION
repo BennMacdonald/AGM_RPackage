@@ -1,6 +1,6 @@
 Package: deGradInfer
 Title: Parameter Inference for Systems of Differential Equation
-Version: 1.0.0
+Version: 1.0.1
 Authors@R: c(person("Benn", "Macdonald", email = "Benn.Macdonald@glasgow.ac.uk", role = c("aut")),
              person("Frank", "Dondelinger", email = "fdondelinger.work@gmail.com", role = c("aut", "cre")))
 Description: Efficient Bayesian parameter inference for systems of ordinary 
@@ -22,7 +22,7 @@ Imports:
   gptk,
   graphics,
   stats
-RoxygenNote: 6.0.1
+RoxygenNote: 7.0.2
 Suggests: testthat,
     knitr,
     rmarkdown,
